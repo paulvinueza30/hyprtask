@@ -1,9 +1,8 @@
 package proc
 
-type UsageStats struct{
+type Metrics struct{
 	CPU float64
 	MEM float64
-	Err error
 }
 type ProcStats struct {
 	cpuStats CPUStats

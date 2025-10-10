@@ -34,17 +34,8 @@ func Init(tickDuration time.Duration) (*SystemMonitor, error) {
 
 	return &SystemMonitor{fs: fs, totalMemory: *memInfo.MemTotal, pageSize: pageSize, tickDuration: tickDuration}, nil
 }
-func (m *SystemMonitor) GetUsage(pid int) (*UsageStats, error) {
 
-	usageRes , err := m.getUsage(pid)
-	if err != nil {
-		return nil , err
-	}
-	logger.Log.Info(fmt.Sprintf("usage stats for proc(%d) :", pid), "usageRes", usageRes)
-	return usageRes, nil
-}
-
-func (m *SystemMonitor) getUsage(pid int) (*UsageStats, error) {
+func (m *SystemMonitor) GetMetrics(pid int) (*Metrics, error) {
 	beforeStats, err := m.getProcStats(pid)
 	if err != nil {
 		return nil , err
@@ -54,9 +45,9 @@ func (m *SystemMonitor) getUsage(pid int) (*UsageStats, error) {
 	if err != nil {
 		return nil , err
 	}
-
+	
 	time.Sleep(m.tickDuration)
-
+	
 	afterStats, err := m.getProcStats(pid)
 	if err != nil {
 		return nil , err
@@ -66,11 +57,13 @@ func (m *SystemMonitor) getUsage(pid int) (*UsageStats, error) {
 		return nil , err
 	}
 	totalTime := *afterTime - *beforeTime
-
+	
 	cpuUsage := m.calcCpuUsage(beforeStats.cpuStats, afterStats.cpuStats, totalTime)
 	memUsage := m.calcMemoryUsage(afterStats.memoryStats)
-
-	return &UsageStats{CPU: cpuUsage, MEM: memUsage, Err: nil} , nil
+	
+	metrics := &Metrics{CPU: cpuUsage, MEM: memUsage, } 
+	logger.Log.Info(fmt.Sprintf("usage stats for proc(%d) :", pid), "metrics " , metrics)
+	return metrics , nil
 }
 func (m *SystemMonitor) getTotalTime() (*float64, error) {
 	stat, err := m.fs.Stat()

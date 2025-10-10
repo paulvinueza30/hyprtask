@@ -6,18 +6,20 @@ import (
 
 	"github.com/paulvinueza30/hyprtask/internal/logger"
 	"github.com/paulvinueza30/hyprtask/internal/proc"
-	"github.com/paulvinueza30/hyprtask/services/taskmanager/managers"
+	"github.com/paulvinueza30/hyprtask/services/taskmanager/providers"
 )
 
 type TaskManager struct {
 	pollingInterval time.Duration
 	systemMonitor   proc.SystemMonitor
 	mode            Mode
-	procManager     managers.ProcessManager
+	procProvider    providers.ProcessProvider
+	
+	activeProcesses map[int]*TaskProcess // PID to task
 }
 
-var procManagers = map[Mode]managers.ProcessManager{
-	Hypr: managers.NewHyprlandManager(),
+var procProviders = map[Mode]providers.ProcessProvider{
+	Hypr: providers.NewHyprlandProvider(),
 }
 
 func NewTaskManager(mode string, pollInterval time.Duration) (*TaskManager, error) {
@@ -25,12 +27,14 @@ func NewTaskManager(mode string, pollInterval time.Duration) (*TaskManager, erro
 	if !ok {
 		return nil, fmt.Errorf("invalid mode for task manager: %s", mode)
 	}
-	procManager := procManagers[m]
+	procProvider := procProviders[m]
 	systemMonitor, err := proc.Init(time.Second * 4)
 	if err != nil {
 		return nil, err
 	}
-	return &TaskManager{mode: m, pollingInterval: pollInterval, systemMonitor: *systemMonitor, procManager: procManager}, nil
+	
+	activeProcesses := make(map[int]*TaskProcess)
+	return &TaskManager{mode: m, pollingInterval: pollInterval, systemMonitor: *systemMonitor, procProvider: procProvider, activeProcesses: activeProcesses}, nil
 }
 
 func (t *TaskManager) Start() {
@@ -57,19 +61,22 @@ func (t *TaskManager) Start() {
 }
 
 func (t *TaskManager) poll() error {
-	pids, err := t.procManager.GetPIDs()
+	procs, err := t.procProvider.GetProcs()
 	if err != nil {
 		logger.Log.Error("could not get pids from proc provider", "err: ", err)
 		return err
 	}
-	for _, p := range pids {
-		go func(pid int){
-			_, err := t.systemMonitor.GetUsage(p)
+	for _, p := range procs{
+		t.activeProcesses[p.PID] = &TaskProcess{PID: p.PID , Meta: p.Meta,}
+		go func(pid int) {
+			m, err := t.systemMonitor.GetMetrics(pid)
 			if err != nil {
 				logger.Log.Error("could not get get process usage", "err: ", err)
 				return
 			}
-		}(p)
+			proc := t.activeProcesses[pid]
+			proc.Metrics = *m
+		}(p.PID)
 	}
 	return nil
 }

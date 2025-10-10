@@ -1,5 +1,10 @@
 package taskmanager
 
+import (
+	"github.com/paulvinueza30/hyprtask/internal/proc"
+	"github.com/paulvinueza30/hyprtask/services/taskmanager/providers"
+)
+
 type Mode string
 
 const (
@@ -12,3 +17,8 @@ var stringToMode = map[string]Mode{
 	"hypr" : Hypr,
 }
 
+type TaskProcess struct {
+	PID int
+	Meta providers.Meta
+	Metrics proc.Metrics 
+}
