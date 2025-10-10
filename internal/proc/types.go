@@ -1,7 +1,13 @@
 package proc
 
+type UsageStats struct{
+	CPU float64
+	MEM float64
+	Err error
+}
 type ProcStats struct {
 	cpuStats CPUStats
+	memoryStats MemoryStats
 }
 type CPUStats struct {
 	uTime   uint
@@ -10,3 +16,6 @@ type CPUStats struct {
 	cstTime uint
 	cpuTime float64 
 }
+type MemoryStats struct {
+	rss int
+} 
