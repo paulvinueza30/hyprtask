@@ -10,123 +10,114 @@ import (
 	"github.com/prometheus/procfs"
 )
 
-
 type SystemMonitor struct {
-	fs procfs.FS
+	fs          procfs.FS
 	totalMemory uint64
-	pageSize int
-	
+	pageSize    int
+
 	tickDuration time.Duration
 }
-func Init() (*SystemMonitor, error){
+
+func Init(tickDuration time.Duration) (*SystemMonitor, error) {
 	fs, err := procfs.NewFS("/proc")
 	if err != nil {
 		logger.Log.Error("cannot set fs procfs: " + err.Error())
 		return nil, err
 	}
-	
+
 	memInfo, err := fs.Meminfo()
-	if err != nil{
+	if err != nil {
 		logger.Log.Error("could not get fs memory info: " + err.Error())
-		return nil , err 
+		return nil, err
 	}
 	pageSize := os.Getpagesize()
-	
-	tickDuration := 2 * time.Second // time between CPU before and after calc
+
 	return &SystemMonitor{fs: fs, totalMemory: *memInfo.MemTotal, pageSize: pageSize, tickDuration: tickDuration}, nil
 }
 func (m *SystemMonitor) GetUsage(pid int) (*UsageStats, error) {
 
-	usageChannel := make(chan UsageStats)
-	go m.getUsage(pid, usageChannel)
-	usageRes := <-usageChannel
-	
-	if usageRes.Err != nil{
-		return nil , usageRes.Err 
+	usageRes , err := m.getUsage(pid)
+	if err != nil {
+		return nil , err
 	}
 	logger.Log.Info(fmt.Sprintf("usage stats for proc(%d) :", pid), "usageRes", usageRes)
-	return &usageRes, nil
+	return usageRes, nil
 }
 
-func (m *SystemMonitor) getUsage(pid int , res chan UsageStats) {
-	beforeStats , err := m.getProcStats(pid)
-	if err != nil{
-		res <- UsageStats{Err: err}
-		return
+func (m *SystemMonitor) getUsage(pid int) (*UsageStats, error) {
+	beforeStats, err := m.getProcStats(pid)
+	if err != nil {
+		return nil , err
 	}
+	
 	beforeTime, err := m.getTotalTime()
-	if err != nil{
-		res <- UsageStats{Err: err}
-		return
+	if err != nil {
+		return nil , err
 	}
 
 	time.Sleep(m.tickDuration)
 
-	afterStats , err := m.getProcStats(pid)
-	if err != nil{
-		res <- UsageStats{Err: err}
-		return
+	afterStats, err := m.getProcStats(pid)
+	if err != nil {
+		return nil , err
 	}
 	afterTime, err := m.getTotalTime()
-	if err != nil{
-		res <- UsageStats{Err: err}
-		return
+	if err != nil {
+		return nil , err
 	}
 	totalTime := *afterTime - *beforeTime
 
 	cpuUsage := m.calcCpuUsage(beforeStats.cpuStats, afterStats.cpuStats, totalTime)
 	memUsage := m.calcMemoryUsage(afterStats.memoryStats)
-	
-	res <- UsageStats{CPU: cpuUsage, MEM: memUsage, Err: nil} 
+
+	return &UsageStats{CPU: cpuUsage, MEM: memUsage, Err: nil} , nil
 }
 func (m *SystemMonitor) getTotalTime() (*float64, error) {
-	stat , err := m.fs.Stat()
+	stat, err := m.fs.Stat()
 	if err != nil {
 		return nil, err
 	}
 	cpuTotal := stat.CPUTotal
-	
+
 	v := reflect.ValueOf(cpuTotal)
 
 	var totalTicks float64
-	for i := range v.NumField(){
+	for i := range v.NumField() {
 		totalTicks += v.Field(i).Float()
 	}
 	return &totalTicks, err
 }
-func (m *SystemMonitor) getProcStats(pid int) (*ProcStats, error){
+func (m *SystemMonitor) getProcStats(pid int) (*ProcStats, error) {
 	proc, err := m.fs.Proc(pid)
 	if err != nil {
 		logger.Log.Error("could not get proc: " + err.Error())
-		return nil , err
+		return nil, err
 	}
 
 	stat, err := proc.Stat()
 	if err != nil {
 		logger.Log.Error("could not get proc stats: " + err.Error())
-		return nil , err
+		return nil, err
 	}
 
-
 	cpuStats := CPUStats{cuTime: uint(stat.CUTime), cstTime: uint(stat.CSTime), sTime: stat.STime, uTime: stat.UTime}
-	memStats :=  MemoryStats{rss: stat.RSS}
-	
-	return &ProcStats{cpuStats: cpuStats , memoryStats: memStats}, nil
+	memStats := MemoryStats{rss: stat.RSS}
+
+	return &ProcStats{cpuStats: cpuStats, memoryStats: memStats}, nil
 }
 
-func (m *SystemMonitor) calcCpuUsage(before , after CPUStats, totalTime float64)  float64{
+func (m *SystemMonitor) calcCpuUsage(before, after CPUStats, totalTime float64) float64 {
 	if totalTime == 0 {
 		return 0.0
 	}
 	userUtil := after.uTime - before.uTime
 	sysUtil := after.sTime - before.sTime
 	processDelta := userUtil + sysUtil
-	return float64(processDelta)/  totalTime * 100.0
+	return float64(processDelta) / totalTime * 100.0
 }
 
-func (m *SystemMonitor) calcMemoryUsage(memStats MemoryStats) float64{
+func (m *SystemMonitor) calcMemoryUsage(memStats MemoryStats) float64 {
 	residentMemorySize := uint64(memStats.rss) * uint64(m.pageSize)
 	memoryTotal := uint64(m.totalMemory * 1024) // kB -> b
 	return float64(residentMemorySize) / float64(memoryTotal) * 100.0
 }
-	

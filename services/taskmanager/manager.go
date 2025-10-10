@@ -26,7 +26,7 @@ func NewTaskManager(mode string, pollInterval time.Duration) (*TaskManager, erro
 		return nil, fmt.Errorf("invalid mode for task manager: %s", mode)
 	}
 	procManager := procManagers[m]
-	systemMonitor, err := proc.Init()
+	systemMonitor, err := proc.Init(time.Second * 4)
 	if err != nil {
 		return nil, err
 	}
@@ -41,17 +41,8 @@ func (t *TaskManager) Start() {
 		for {
 			select {
 			case <-ticker.C:
-				pids, err := t.procManager.GetPIDs()
-				if err != nil {
-					logger.Log.Error("could not get pids from proc provider", "err: ", err)
-					done <- true
+				if err := t.poll(); err != nil {
 					return
-				}
-				for _, p := range pids {
-					_, err := t.systemMonitor.GetUsage(p)
-					if err != nil {
-						logger.Log.Error("could not get get process usage", "err: ", err)
-					}
 				}
 			case <-done:
 				logger.Log.Info("stopping task manager")
@@ -60,18 +51,25 @@ func (t *TaskManager) Start() {
 		}
 	}()
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(30 * time.Second)
 	done <- true
 	time.Sleep(1 * time.Second)
 }
 
-// clients := hyprClient.ListClients()
-
-// for _, c := range clients {
-// 	_, err := systemMonitor.GetUsage(c.PID)
-// 	if err != nil{
-// 		logger.Log.Error("could not get usage for PID", "err: ", err)
-// 		return nil, err
-// 	}
-
-// }
+func (t *TaskManager) poll() error {
+	pids, err := t.procManager.GetPIDs()
+	if err != nil {
+		logger.Log.Error("could not get pids from proc provider", "err: ", err)
+		return err
+	}
+	for _, p := range pids {
+		go func(pid int){
+			_, err := t.systemMonitor.GetUsage(p)
+			if err != nil {
+				logger.Log.Error("could not get get process usage", "err: ", err)
+				return
+			}
+		}(p)
+	}
+	return nil
+}
