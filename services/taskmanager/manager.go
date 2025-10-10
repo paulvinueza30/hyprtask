@@ -2,6 +2,7 @@ package taskmanager
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/paulvinueza30/hyprtask/internal/logger"
@@ -16,6 +17,7 @@ type TaskManager struct {
 	procProvider    providers.ProcessProvider
 	
 	activeProcesses map[int]*TaskProcess // PID to task
+	mu sync.RWMutex
 }
 
 var procProviders = map[Mode]providers.ProcessProvider{
@@ -45,9 +47,7 @@ func (t *TaskManager) Start() {
 		for {
 			select {
 			case <-ticker.C:
-				if err := t.poll(); err != nil {
-					return
-				}
+				t.updateTaskProcesses()
 			case <-done:
 				logger.Log.Info("stopping task manager")
 				return
@@ -60,23 +60,58 @@ func (t *TaskManager) Start() {
 	time.Sleep(1 * time.Second)
 }
 
-func (t *TaskManager) poll() error {
+
+func (t *TaskManager) updateTaskProcesses() {
 	procs, err := t.procProvider.GetProcs()
 	if err != nil {
 		logger.Log.Error("could not get pids from proc provider", "err: ", err)
-		return err
+		return
 	}
-	for _, p := range procs{
-		t.activeProcesses[p.PID] = &TaskProcess{PID: p.PID , Meta: p.Meta,}
-		go func(pid int) {
+
+	go t.deleteInactiveProcesses(procs)
+	go t.updateActiveProcesses(procs)
+}
+
+func (t *TaskManager) deleteInactiveProcesses(procs map[int]providers.Proc) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	logger.Log.Info("active processes now: ", "active procs before", len(t.activeProcesses))
+
+	// Take a snapshot of keys to avoid mutating map while iterating
+	snapshot := make([]int, 0, len(t.activeProcesses))
+	for pid := range t.activeProcesses {
+		snapshot = append(snapshot, pid)
+	}
+
+	deletedCount := 0
+	for _, pid := range snapshot {
+		if _, ok := procs[pid]; !ok {
+			deletedCount++
+			delete(t.activeProcesses, pid)
+		}
+	}
+
+	logger.Log.Info("proc details", "active procs", len(t.activeProcesses), "procs deleted", deletedCount)
+}
+
+
+func (t *TaskManager) updateActiveProcesses(procs map[int]providers.Proc) {
+	for pid, p := range procs {
+		go func(pid int, meta providers.Meta) {
 			m, err := t.systemMonitor.GetMetrics(pid)
 			if err != nil {
-				logger.Log.Error("could not get get process usage", "err: ", err)
+				logger.Log.Error("could not get system metrics", "error", err)
 				return
 			}
-			proc := t.activeProcesses[pid]
-			proc.Metrics = *m
-		}(p.PID)
+
+			t.mu.Lock()
+			defer t.mu.Unlock()
+			t.activeProcesses[pid] = &TaskProcess{
+				PID:     pid,
+				Meta:    meta,
+				Metrics: *m,
+			}
+		}(pid, p.Meta)
 	}
-	return nil
 }

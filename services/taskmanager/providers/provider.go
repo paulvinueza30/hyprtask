@@ -10,5 +10,5 @@ type Proc struct{
 	Meta Meta
 }
 type ProcessProvider interface {
-	GetProcs() ([]Proc, error)
+	GetProcs() (map[int]Proc , error)
 }

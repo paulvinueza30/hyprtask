@@ -11,12 +11,11 @@ func NewHyprlandProvider() *HyprlandProvider {
 	return &HyprlandProvider{client: client}
 }
 
-func (p *HyprlandProvider) GetProcs() ([]Proc, error) {
+func (p *HyprlandProvider) GetProcs() (map[int]Proc, error) {
 	clients := p.client.ListClients()
-	procs := make([]Proc, len(clients))
-	for i, c := range clients {
-		procs[i].PID = c.PID
-		procs[i].Meta.Client = &c
+	procs := make(map[int]Proc, len(clients))
+	for _, c := range clients {
+		procs[c.PID] = Proc{Meta: Meta{Client: &c} , PID: c.PID}
 	}
 	return procs, nil
 }
