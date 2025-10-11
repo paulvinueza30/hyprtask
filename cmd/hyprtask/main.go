@@ -5,15 +5,20 @@ import (
 
 	"github.com/paulvinueza30/hyprtask/internal/logger"
 	"github.com/paulvinueza30/hyprtask/internal/taskmanager"
+	"github.com/paulvinueza30/hyprtask/internal/ui"
 )
 
 func main() {
 	logger.Init()
 	
 	snapshotChan := make(chan taskmanager.Snapshot, 1)
-	tm, err := taskmanager.NewTaskManager("hypr" , 5 * time.Second, snapshotChan)
+	defaultMode := "hypr"
+	tm, err := taskmanager.NewTaskManager(defaultMode, 5 * time.Second, snapshotChan)
 	if err != nil{
 		return
 	}
-	tm.Start()	
+	vm := ui.NewViewModel(taskmanager.Mode(defaultMode), snapshotChan)
+	go tm.Start()	
+	vm.Start()
+
 }

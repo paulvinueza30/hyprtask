@@ -44,22 +44,17 @@ func NewTaskManager(mode string, pollInterval time.Duration, snapshotChan chan S
 func (t *TaskManager) Start() {
 	ticker := time.NewTicker(t.pollingInterval)
 	defer ticker.Stop()
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				go t.updateTaskProcesses()
-			case <-done:
-				logger.Log.Info("stopping task manager")
-				return
-			}
+	devTicker := time.NewTicker(30 * time.Second)
+	defer devTicker.Stop() 
+	for {
+		select {
+		case <-ticker.C:
+			go t.updateTaskProcesses()
+		case <-devTicker.C:
+			logger.Log.Info("stopping task manager")
+			return
 		}
-	}()
-
-	time.Sleep(30 * time.Second)
-	done <- true
-	time.Sleep(1 * time.Second)
+	}
 }
 
 
