@@ -15,17 +15,24 @@ const (
 )
 
 var stringToMode = map[string]Mode{
-	"all" : All,
-	"hypr" : Hypr,
+	"all":  All,
+	"hypr": Hypr,
 }
 
 type TaskProcess struct {
-	PID int
-	Meta providers.Meta
-	Metrics proc.Metrics 
+	PID     int
+	Meta    providers.Meta
+	Metrics proc.Metrics
 }
 
 type Snapshot struct {
-	Processes []TaskProcess 
+	Processes []TaskProcess
 	Timestamp time.Time
 }
+
+type TaskAction struct {
+	Type    TaskActionType
+	Payload interface{}
+}
+
+type TaskActionType int

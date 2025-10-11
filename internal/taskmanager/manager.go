@@ -17,16 +17,17 @@ type TaskManager struct {
 	procProvider    providers.ProcessProvider
 
 	activeProcesses map[int]TaskProcess // PID to task
-	mu sync.RWMutex
-	
-	snapshotChan chan<- Snapshot
+	mu              sync.RWMutex
+
+	snapshotChan   chan<- Snapshot
+	taskActionChan <-chan TaskAction
 }
 
 var procProviders = map[Mode]providers.ProcessProvider{
 	Hypr: providers.NewHyprlandProvider(),
 }
 
-func NewTaskManager(mode string, pollInterval time.Duration, snapshotChan chan Snapshot) (*TaskManager, error) {
+func NewTaskManager(mode string, pollInterval time.Duration, snapshotChan chan Snapshot, taskActionChan chan TaskAction) (*TaskManager, error) {
 	m, ok := stringToMode[mode]
 	if !ok {
 		return nil, fmt.Errorf("invalid mode for task manager: %s", mode)
@@ -36,16 +37,16 @@ func NewTaskManager(mode string, pollInterval time.Duration, snapshotChan chan S
 	if err != nil {
 		return nil, err
 	}
-	
+
 	activeProcesses := make(map[int]TaskProcess)
-	return &TaskManager{mode: m, pollingInterval: pollInterval, systemMonitor: *systemMonitor, procProvider: procProvider, activeProcesses: activeProcesses , snapshotChan: snapshotChan}, nil
+	return &TaskManager{mode: m, pollingInterval: pollInterval, systemMonitor: *systemMonitor, procProvider: procProvider, activeProcesses: activeProcesses, snapshotChan: snapshotChan, taskActionChan: taskActionChan}, nil
 }
 
 func (t *TaskManager) Start() {
 	ticker := time.NewTicker(t.pollingInterval)
 	defer ticker.Stop()
 	devTicker := time.NewTicker(30 * time.Second)
-	defer devTicker.Stop() 
+	defer devTicker.Stop()
 	for {
 		select {
 		case <-ticker.C:
@@ -56,7 +57,6 @@ func (t *TaskManager) Start() {
 		}
 	}
 }
-
 
 func (t *TaskManager) updateTaskProcesses() {
 	procs, err := t.procProvider.GetProcs()
@@ -73,7 +73,7 @@ func (t *TaskManager) updateTaskProcesses() {
 
 func (t *TaskManager) deleteInactiveProcesses(procs map[int]providers.Proc) {
 	t.mu.Lock()
-	defer t.mu.Unlock()	
+	defer t.mu.Unlock()
 	logger.Log.Info("active processes now: ", "active procs before", len(t.activeProcesses))
 	// Take a snapshot of keys to avoid mutating map while iterating
 	snapshot := make([]int, 0, len(t.activeProcesses))
@@ -91,7 +91,6 @@ func (t *TaskManager) deleteInactiveProcesses(procs map[int]providers.Proc) {
 
 	logger.Log.Info("proc details", "active procs", len(t.activeProcesses), "procs deleted", deletedCount)
 }
-
 
 func (t *TaskManager) updateActiveProcesses(procs map[int]providers.Proc) {
 	var wg sync.WaitGroup
@@ -117,18 +116,18 @@ func (t *TaskManager) updateActiveProcesses(procs map[int]providers.Proc) {
 	wg.Wait()
 }
 
-func (t *TaskManager) makeSnapshot() Snapshot{
+func (t *TaskManager) makeSnapshot() Snapshot {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
-	procs := make([]TaskProcess,0 , len(t.activeProcesses))
-	for _, tp := range t.activeProcesses{
+
+	procs := make([]TaskProcess, 0, len(t.activeProcesses))
+	for _, tp := range t.activeProcesses {
 		procs = append(procs, tp)
 	}
 	return Snapshot{Processes: procs, Timestamp: time.Now()}
 }
 
-func (t *TaskManager) sendSnapshot(){
+func (t *TaskManager) sendSnapshot() {
 	snapshot := t.makeSnapshot()
 
 	select {
