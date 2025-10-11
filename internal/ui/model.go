@@ -6,6 +6,7 @@ import (
 	"github.com/paulvinueza30/hyprtask/internal/viewmodel"
 
 	"github.com/paulvinueza30/hyprtask/internal/ui/components"
+	"github.com/paulvinueza30/hyprtask/internal/ui/theme"
 )
 
 type Model struct {
@@ -17,10 +18,14 @@ type Model struct {
 	
 	width  int
 	height int
+	
+	theme theme.Theme
 }
 
 func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.ViewAction) *Model {
-	return &Model{displayDataChan: ddChan, viewActionChan: viewActChan }
+	// add customization latrrr
+	defaultTheme := theme.NewDefaultTheme()
+	return &Model{displayDataChan: ddChan, viewActionChan: viewActChan, theme: defaultTheme }
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -48,11 +53,8 @@ func (m *Model) View() string {
         Width(m.width).
         Align(lipgloss.Center)
 
-    // 2. Render the actual text using the configured style.
     headerText := styledHeader.Render("HyprTask")
 
-    // For now, you can just return the header string.
-    // Later, you will use lipgloss.JoinVertical() to add body content.
     return headerText
 }
 func (m *Model) listenToDisplayDataChan() tea.Cmd {
