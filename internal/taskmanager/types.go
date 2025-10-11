@@ -1,8 +1,10 @@
 package taskmanager
 
 import (
+	"time"
+
 	"github.com/paulvinueza30/hyprtask/internal/proc"
-	"github.com/paulvinueza30/hyprtask/services/taskmanager/providers"
+	"github.com/paulvinueza30/hyprtask/internal/taskmanager/providers"
 )
 
 type Mode string
@@ -21,4 +23,9 @@ type TaskProcess struct {
 	PID int
 	Meta providers.Meta
 	Metrics proc.Metrics 
+}
+
+type Snapshot struct {
+	Processes []TaskProcess 
+	Timestamp time.Time
 }
