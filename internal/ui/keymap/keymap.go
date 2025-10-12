@@ -27,8 +27,8 @@ func Get() KeyMap {
 func NewDefaultKeyMap() KeyMap {
 	km := KeyMap{}
 	km.setQuitKeys("q", "ctrl+c")
-	km.setNavigateLeftKeys("h", "left")
-	km.setNavigateRightKeys("l", "right")
+	km.setNavigateLeftKeys("left", "h")
+	km.setNavigateRightKeys("right", "l")
 	km.setNavigateUpKeys("up", "k")
 	km.setNavigateDownKeys("down", "j")
 	return km
