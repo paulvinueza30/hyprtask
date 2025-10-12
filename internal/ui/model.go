@@ -3,10 +3,8 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/paulvinueza30/hyprtask/internal/viewmodel"
-
-	"github.com/paulvinueza30/hyprtask/internal/ui/components"
 	"github.com/paulvinueza30/hyprtask/internal/ui/theme"
+	"github.com/paulvinueza30/hyprtask/internal/viewmodel"
 )
 
 type Model struct {
@@ -19,13 +17,11 @@ type Model struct {
 	width  int
 	height int
 	
-	theme theme.Theme
 }
 
 func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.ViewAction) *Model {
-	// add customization latrrr
-	defaultTheme := theme.NewDefaultTheme()
-	return &Model{displayDataChan: ddChan, viewActionChan: viewActChan, theme: defaultTheme }
+	theme.Init()
+	return &Model{displayDataChan: ddChan, viewActionChan: viewActChan}
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -49,13 +45,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) View() string {
-  styledHeader := components.HeaderStyle.
+  header := theme.Get().Header.
         Width(m.width).
-        Align(lipgloss.Center)
+        Align(lipgloss.Center).Render("HyprTask")
 
-    headerText := styledHeader.Render("HyprTask")
-
-    return headerText
+    return header 
 }
 func (m *Model) listenToDisplayDataChan() tea.Cmd {
 	return func() tea.Msg {

@@ -5,11 +5,12 @@ import "github.com/charmbracelet/lipgloss"
 // Theme struct and sub-structs remain the same
 type Theme struct {
     Header        lipgloss.Style
-    Footer        lipgloss.Style
+    ViewModel     ViewModelTheme
     WorkspaceView WorkspaceTheme
     ProcessView   ProcessListTheme
     UsageBars     UsageBarTheme
     Help          HelpTheme
+    Footer        lipgloss.Style
 }
 
 type WorkspaceTheme struct {
@@ -24,6 +25,9 @@ type ProcessListTheme struct {
     Row         lipgloss.Style
     SelectedRow lipgloss.Style
 }
+type ViewModelTheme struct {
+    Title lipgloss.Style
+}
 
 type UsageBarTheme struct {
     Text      lipgloss.Style
@@ -36,9 +40,20 @@ type HelpTheme struct {
     Desc  lipgloss.Style
 }
 
+var theme Theme
+
+func Init(){
+    theme = NewDefaultTheme()
+}
+
+func Get() Theme{
+    return theme 
+}
+
 func NewDefaultTheme() Theme {
     return Theme{
         Header:        buildHeaderTheme(DefaultColorAccent, DefaultColorForeground),
+        ViewModel:     buildViewModelTheme(DefaultColorAccent, DefaultColorForeground),
         Footer:        buildFooterTheme(),
         WorkspaceView: buildWorkspaceTheme(DefaultColorBorder, DefaultColorAccent, DefaultColorForeground, DefaultColorMutedText),
         ProcessView:   buildProcessListTheme(DefaultColorAccent, DefaultColorForeground),
@@ -108,5 +123,13 @@ func buildHelpTheme(accent, muted string) HelpTheme {
             Foreground(lipgloss.Color(accent)),
         Desc: lipgloss.NewStyle().
             Foreground(lipgloss.Color(muted)),
+    }
+}
+
+func buildViewModelTheme(accent, fg string) ViewModelTheme {
+    return ViewModelTheme{
+        Title: lipgloss.NewStyle().
+            Bold(true).
+            Foreground(lipgloss.Color(accent)),
     }
 }
