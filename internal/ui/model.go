@@ -6,16 +6,18 @@ import (
 	"github.com/paulvinueza30/hyprtask/internal/ui/theme"
 	"github.com/paulvinueza30/hyprtask/internal/viewmodel"
 )
-
+type RenderContext struct {
+	Width int
+	Height int
+	HasFocus bool
+}
 type Model struct {
 	displayDataChan <-chan viewmodel.DisplayData
 	viewActionChan  chan<- viewmodel.ViewAction
 
-	cursor      int // idk how im gonna get it but we'll see
 	displayData viewmodel.DisplayData
 	
-	width  int
-	height int
+	RenderContext RenderContext
 	
 }
 
@@ -36,8 +38,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.displayData = msg
 		return m, m.listenToDisplayDataChan()
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
+		m.RenderContext.Height = msg.Height
+		m.RenderContext.Width = msg.Width
 		return m, nil
 	}
 
@@ -46,7 +48,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *Model) View() string {
   header := theme.Get().Header.
-        Width(m.width).
+        Width(m.RenderContext.Width).
         Align(lipgloss.Center).Render("HyprTask")
 
     return header 
