@@ -51,7 +51,21 @@ type ViewAction struct {
 	Payload interface{}
 }
 
+type WorkspaceData struct{
+	activeProcs []taskmanager.TaskProcess
+	activeProcsCount int
+	TotalCPU float64
+	TotalMEM float64
+	WorkspaceName string
+	WorkspaceID int
+}
+
+type WorkspaceDisplayData struct{
+	WorkspaceToProcs map[int]*WorkspaceData// workspace id -> procs in workspace
+	WorkspaceCount int
+}
+
 type DisplayData struct {
 	All  []taskmanager.TaskProcess
-	Hypr map[int][]taskmanager.TaskProcess // workspace id -> procs in workspace
+	Hypr WorkspaceDisplayData
 }

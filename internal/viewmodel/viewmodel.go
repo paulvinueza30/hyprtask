@@ -60,13 +60,13 @@ func (v *ViewModel) buildDisplayData() {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	procs := v.currentSnapshot.Processes
-	var group map[int][]taskmanager.TaskProcess
+	var wsDisplayData WorkspaceDisplayData
 	if v.mode == taskmanager.Hypr {
-		group = v.groupProcsByWorkspace(procs)
+		wsDisplayData = v.buildWorkspaceDisplayData(procs)
 	}
 	v.applyViewOptions(procs)
 
-	v.displayData = DisplayData{All: procs, Hypr: group}
+	v.displayData = DisplayData{All: procs, Hypr: wsDisplayData}
 }
 func (v *ViewModel) applyViewOptions(procs []taskmanager.TaskProcess) {
 	if v.currentSnapshot == nil {
@@ -94,14 +94,23 @@ func (v *ViewModel) applyViewOptions(procs []taskmanager.TaskProcess) {
 	})
 }
 
-func (v *ViewModel) groupProcsByWorkspace(procs []taskmanager.TaskProcess) map[int][]taskmanager.TaskProcess {
-	group := make(map[int][]taskmanager.TaskProcess)
+func (v *ViewModel) buildWorkspaceDisplayData(procs []taskmanager.TaskProcess) WorkspaceDisplayData{
+
+	workspaceToWorkspaceData := make(map[int]*WorkspaceData)
+	
+	workspaceCount := 0
 	for _, proc := range procs {
 		wID := proc.Meta.Client.Workspace.ID
-		group[wID] = append(group[wID], proc)
+		wsData , ok := workspaceToWorkspaceData[wID]
+		if !ok {
+			wsData.WorkspaceName = proc.Meta.Client.Workspace.Name
+			wsData.WorkspaceID = wID
+		}
+	    wsData.activeProcs = append(wsData.activeProcs, proc)
 	}
-	for _, procs := range group {
-		v.applyViewOptions(procs)
+	for _, wsData := range workspaceToWorkspaceData {
+		wsData.activeProcsCount = len(wsData.activeProcs)
+		v.applyViewOptions(wsData.activeProcs)
 	}
-	return group
+	return WorkspaceDisplayData{WorkspaceCount: workspaceCount, WorkspaceToProcs:  workspaceToWorkspaceData}
 }
