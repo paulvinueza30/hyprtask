@@ -7,11 +7,11 @@ import (
 
 // KeyMap defines all the key bindings for the application
 type KeyMap struct {
-	Quit                   key.Binding
-	NavigateWorkspaceLeft  key.Binding
-	NavigateWorkspaceRight key.Binding
-	NavigateProcessUp      key.Binding
-	NavigateProcessDown    key.Binding
+	Quit          key.Binding
+	NavigateLeft  key.Binding
+	NavigateRight key.Binding
+	NavigateUp    key.Binding
+	NavigateDown  key.Binding
 }
 
 var keyMap KeyMap
@@ -27,49 +27,34 @@ func Get() KeyMap {
 func NewDefaultKeyMap() KeyMap {
 	km := KeyMap{}
 	km.setQuitKeys("q", "ctrl+c")
-	km.setNavigateWorkspaceLeftKeys("h", "left")
-	km.setNavigateWorkspaceRightKeys("l", "right")
-	km.setNavigateProcessUpKeys("up", "k")
-	km.setNavigateProcessDownKeys("down", "j")
+	km.setNavigateLeftKeys("h", "left")
+	km.setNavigateRightKeys("l", "right")
+	km.setNavigateUpKeys("up", "k")
+	km.setNavigateDownKeys("down", "j")
 	return km
 }
 
-// GetHelpText returns formatted help text for workspace navigation
-func (km KeyMap) GetWorkspaceHelpText() string {
-	leftKeys := km.NavigateWorkspaceLeft.Help().Key
-	rightKeys := km.NavigateWorkspaceRight.Help().Key
-	return leftKeys + "/" + rightKeys + ": navigate"
+// GetHelpText returns formatted help text for navigation
+func (km KeyMap) GetHelpText() string {
+	leftKeys := km.NavigateLeft.Help().Key
+	rightKeys := km.NavigateRight.Help().Key
+	upKeys := km.NavigateUp.Help().Key
+	downKeys := km.NavigateDown.Help().Key
+	return leftKeys + "/" + rightKeys + "/" + upKeys + "/" + downKeys + ": navigate"
 }
 
-// GetHelpText returns formatted help text for process navigation
-func (km KeyMap) GetProcessHelpText() string {
-	upKeys := km.NavigateProcessUp.Help().Key
-	downKeys := km.NavigateProcessDown.Help().Key
-	return upKeys + "/" + downKeys + ": navigate"
-}
-
-// HandleWorkspaceKeyMsg processes key messages for workspace navigation
-func (km KeyMap) HandleWorkspaceKeyMsg(msg tea.KeyMsg) (string, bool) {
+// HandleKeyMsg processes key messages for navigation
+func (km KeyMap) HandleKeyMsg(msg tea.KeyMsg) (string, bool) {
 	switch {
 	case key.Matches(msg, km.Quit):
 		return "quit", true
-	case key.Matches(msg, km.NavigateWorkspaceLeft):
+	case key.Matches(msg, km.NavigateLeft):
 		return "navigate_left", true
-	case key.Matches(msg, km.NavigateWorkspaceRight):
+	case key.Matches(msg, km.NavigateRight):
 		return "navigate_right", true
-	default:
-		return "", false
-	}
-}
-
-// HandleProcessKeyMsg processes key messages for process navigation
-func (km KeyMap) HandleProcessKeyMsg(msg tea.KeyMsg) (string, bool) {
-	switch {
-	case key.Matches(msg, km.Quit):
-		return "quit", true
-	case key.Matches(msg, km.NavigateProcessUp):
+	case key.Matches(msg, km.NavigateUp):
 		return "navigate_up", true
-	case key.Matches(msg, km.NavigateProcessDown):
+	case key.Matches(msg, km.NavigateDown):
 		return "navigate_down", true
 	default:
 		return "", false
@@ -78,29 +63,29 @@ func (km KeyMap) HandleProcessKeyMsg(msg tea.KeyMsg) (string, bool) {
 
 // Helper methods for initialization
 
-func (km *KeyMap) setNavigateWorkspaceLeftKeys(keys ...string) {
-	km.NavigateWorkspaceLeft = key.NewBinding(
+func (km *KeyMap) setNavigateLeftKeys(keys ...string) {
+	km.NavigateLeft = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "left"),
 	)
 }
 
-func (km *KeyMap) setNavigateWorkspaceRightKeys(keys ...string) {
-	km.NavigateWorkspaceRight = key.NewBinding(
+func (km *KeyMap) setNavigateRightKeys(keys ...string) {
+	km.NavigateRight = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "right"),
 	)
 }
 
-func (km *KeyMap) setNavigateProcessUpKeys(keys ...string) {
-	km.NavigateProcessUp = key.NewBinding(
+func (km *KeyMap) setNavigateUpKeys(keys ...string) {
+	km.NavigateUp = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "up"),
 	)
 }
 
-func (km *KeyMap) setNavigateProcessDownKeys(keys ...string) {
-	km.NavigateProcessDown = key.NewBinding(
+func (km *KeyMap) setNavigateDownKeys(keys ...string) {
+	km.NavigateDown = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "down"),
 	)

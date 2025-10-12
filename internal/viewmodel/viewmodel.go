@@ -40,11 +40,9 @@ func (v *ViewModel) Start() {
 	for {
 		select {
 		case snapshot := <-v.snapshotChan:
-			logger.Log.Info("snapshot received", "snapshot", snapshot)
 			v.updateSnapshot(snapshot)
 			v.buildDisplayData()
 		case action := <-v.actionChan:
-			logger.Log.Info("action recevied", "action", action)
 			v.handleAction(action)
 		}
 	}
@@ -67,7 +65,21 @@ func (v *ViewModel) buildDisplayData() {
 	v.applyViewOptions(procs)
 
 	v.displayData = DisplayData{All: procs, Hypr: wsDisplayData}
+
+	// Send DisplayData to UI
+	logger.Log.Info("About to send DisplayData", "displayData", v.displayData)
+	v.sendDisplayData()
 }
+
+func (v *ViewModel) sendDisplayData() {
+	select {
+	case v.displayDataChan <- v.displayData:
+		logger.Log.Info("DisplayData sent to UI successfully")
+	default:
+		logger.Log.Warn("DisplayData channel full, dropping message")
+	}
+}
+
 func (v *ViewModel) applyViewOptions(procs []taskmanager.TaskProcess) {
 	if v.currentSnapshot == nil {
 		return
@@ -94,23 +106,36 @@ func (v *ViewModel) applyViewOptions(procs []taskmanager.TaskProcess) {
 	})
 }
 
-func (v *ViewModel) buildWorkspaceDisplayData(procs []taskmanager.TaskProcess) WorkspaceDisplayData{
+func (v *ViewModel) buildWorkspaceDisplayData(procs []taskmanager.TaskProcess) WorkspaceDisplayData {
 
 	workspaceToWorkspaceData := make(map[int]*WorkspaceData)
-	
+
 	workspaceCount := 0
 	for _, proc := range procs {
 		wID := proc.Meta.Client.Workspace.ID
-		wsData , ok := workspaceToWorkspaceData[wID]
+		var wsData *WorkspaceData
+		wsData, ok := workspaceToWorkspaceData[wID]
 		if !ok {
+			workspaceToWorkspaceData[wID] = &WorkspaceData{}
+			wsData = workspaceToWorkspaceData[wID]
 			wsData.WorkspaceName = proc.Meta.Client.Workspace.Name
 			wsData.WorkspaceID = wID
 		}
-	    wsData.activeProcs = append(wsData.activeProcs, proc)
+		wsData.TotalCPU += proc.Metrics.CPU
+		wsData.TotalMEM += proc.Metrics.MEM
+		wsData.ActiveProcs = append(wsData.ActiveProcs, proc)
 	}
+	workspaceCount = len(workspaceToWorkspaceData)
+	workspaces := make([]*WorkspaceData, 0, workspaceCount)
 	for _, wsData := range workspaceToWorkspaceData {
-		wsData.activeProcsCount = len(wsData.activeProcs)
-		v.applyViewOptions(wsData.activeProcs)
+		wsData.ActiveProcsCount = len(wsData.ActiveProcs)
+		v.applyViewOptions(wsData.ActiveProcs)
+		workspaces = append(workspaces, wsData)
+
 	}
-	return WorkspaceDisplayData{WorkspaceCount: workspaceCount, WorkspaceToProcs:  workspaceToWorkspaceData}
+	// Sort workspaces by name for consistent ordering
+	slices.SortStableFunc(workspaces, func(a, b *WorkspaceData) int {
+		return cmp.Compare(a.WorkspaceName, b.WorkspaceName)
+	})
+	return WorkspaceDisplayData{WorkspaceCount: workspaceCount, WorkspaceToProcs: workspaceToWorkspaceData, Workspaces: workspaces}
 }

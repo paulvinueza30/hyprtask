@@ -7,3 +7,9 @@
 # Logs
 logs/
 *.log
+
+# Air stuff
+tmp/
+
+# Executable
+hyprtask

@@ -26,11 +26,11 @@ func main() {
 	vm := viewmodel.NewViewModel(taskmanager.Mode(defaultMode), snapshotChan, viewActionChan, displayDataChan)
 	go tm.Start()
 	go vm.Start()
-	
+
 	m := ui.NewModel(displayDataChan, viewActionChan)
 	p := tea.NewProgram(m)
-	if _ , err := p.Run(); err != nil {
-		logger.Log.Error("could not start program" , "error" , err)
+	if _, err := p.Run(); err != nil {
+		logger.Log.Error("could not start program", "error", err)
 		os.Exit(1)
 	}
 }
