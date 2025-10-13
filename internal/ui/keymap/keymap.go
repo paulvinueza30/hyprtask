@@ -12,6 +12,8 @@ type KeyMap struct {
 	NavigateRight key.Binding
 	NavigateUp    key.Binding
 	NavigateDown  key.Binding
+	ScrollUp      key.Binding
+	ScrollDown    key.Binding
 }
 
 var keyMap KeyMap
@@ -31,6 +33,8 @@ func NewDefaultKeyMap() KeyMap {
 	km.setNavigateRightKeys("right", "l")
 	km.setNavigateUpKeys("up", "k")
 	km.setNavigateDownKeys("down", "j")
+	km.setScrollUpKeys("pgup", "u")
+	km.setScrollDownKeys("pgdown", "d")
 	return km
 }
 
@@ -40,7 +44,9 @@ func (km KeyMap) GetHelpText() string {
 	rightKeys := km.NavigateRight.Help().Key
 	upKeys := km.NavigateUp.Help().Key
 	downKeys := km.NavigateDown.Help().Key
-	return leftKeys + "/" + rightKeys + "/" + upKeys + "/" + downKeys + ": navigate"
+	scrollUpKeys := km.ScrollUp.Help().Key
+	scrollDownKeys := km.ScrollDown.Help().Key
+	return leftKeys + "/" + rightKeys + "/" + upKeys + "/" + downKeys + ": navigate, " + scrollUpKeys + "/" + scrollDownKeys + ": scroll"
 }
 
 // HandleKeyMsg processes key messages for navigation
@@ -56,6 +62,10 @@ func (km KeyMap) HandleKeyMsg(msg tea.KeyMsg) (string, bool) {
 		return "navigate_up", true
 	case key.Matches(msg, km.NavigateDown):
 		return "navigate_down", true
+	case key.Matches(msg, km.ScrollUp):
+		return "scroll_up", true
+	case key.Matches(msg, km.ScrollDown):
+		return "scroll_down", true
 	default:
 		return "", false
 	}
@@ -95,5 +105,19 @@ func (km *KeyMap) setQuitKeys(keys ...string) {
 	km.Quit = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "quit"),
+	)
+}
+
+func (km *KeyMap) setScrollUpKeys(keys ...string) {
+	km.ScrollUp = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "scroll up"),
+	)
+}
+
+func (km *KeyMap) setScrollDownKeys(keys ...string) {
+	km.ScrollDown = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "scroll down"),
 	)
 }
