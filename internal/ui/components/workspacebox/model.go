@@ -2,8 +2,10 @@ package workspacebox
 
 import (
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/paulvinueza30/hyprtask/internal/ui/theme"
 )
 
@@ -56,17 +58,19 @@ func (wb *WorkspaceBox) View() string {
 		boxStyle = theme.Get().WorkspaceView.SelectedBox
 	}
 
-	content := theme.Get().WorkspaceView.Title.Render(wb.Name)
-	content += "\n"
+	workspaceName := strings.TrimPrefix(wb.Name, "special:")
+	title := theme.Get().WorkspaceView.Title.Render("WS:" + workspaceName)
 
+	var processText string
 	if wb.WindowCount == 1 {
-		content += theme.Get().WorkspaceView.Details.Render(fmt.Sprintf("%d process", wb.WindowCount))
+		processText = theme.Get().WorkspaceView.Details.Render(fmt.Sprintf("%d process", wb.WindowCount))
 	} else {
-		content += theme.Get().WorkspaceView.Details.Render(fmt.Sprintf("%d processes", wb.WindowCount))
+		processText = theme.Get().WorkspaceView.Details.Render(fmt.Sprintf("%d processes", wb.WindowCount))
 	}
 
-	content += "\n"
-	content += theme.Get().WorkspaceView.Details.Render(fmt.Sprintf("CPU:%.1f%% | MEM %.1f%%", wb.CPUUsage, wb.MemUsage))
+	stats := theme.Get().WorkspaceView.Details.Render(fmt.Sprintf("CPU:%.1f%% | MEM %.1f%%", wb.CPUUsage, wb.MemUsage))
+
+	content := lipgloss.JoinVertical(lipgloss.Center, title, processText, stats)
 
 	return boxStyle.Render(content)
 }

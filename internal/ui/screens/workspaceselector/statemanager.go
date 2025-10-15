@@ -264,6 +264,7 @@ func (sm *stateManager) getScrollOffset() int {
 func (sm *stateManager) scrollUp() {
 	if sm.state.scrollOffset > 0 {
 		sm.state.scrollOffset--
+		sm.ensureSelectionAtTop()
 	}
 }
 
@@ -271,7 +272,14 @@ func (sm *stateManager) scrollDown() {
 	maxRows := sm.getMaxRows()
 	if sm.state.scrollOffset < maxRows-2 {
 		sm.state.scrollOffset++
+		sm.ensureSelectionAtTop()
 	}
+}
+
+func (sm *stateManager) ensureSelectionAtTop() {
+	sm.state.selected.row = sm.state.scrollOffset
+	sm.ensureValidPosition()
+	sm.updateWorkspaceSelection()
 }
 
 func (sm *stateManager) ensureSelectionVisible() {

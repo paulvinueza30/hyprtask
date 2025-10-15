@@ -65,11 +65,6 @@ func (ws *WorkspaceSelectorView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		ws.FlexBox.SetWidth(msg.Width - widthPadding).SetHeight(msg.Height - heightPadding)
 
-		borderStyle := theme.Get().WorkspaceView.Box.Copy().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("3"))
-		ws.FlexBox.SetStyle(borderStyle)
-
 		ws.width = msg.Width
 		ws.height = msg.Height
 	}
@@ -95,12 +90,23 @@ func (ws *WorkspaceSelectorView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (ws *WorkspaceSelectorView) View() string {
 	workspaceCountHeader := theme.Get().WorkspaceView.Title.Render(fmt.Sprintf("%d Workspaces", ws.stateManager.getWorkspaceCount()))
 	title := ws.Title.View()
-
 	workspaceGrid := ws.createWorkspaceGrid()
-
 	instructions := theme.Get().WorkspaceView.Details.Render(keymap.Get().GetHelpText())
 
-	return workspaceCountHeader + "\n\n" + title + "\n\n" + workspaceGrid + "\n\n" + instructions
+	centeredHeader := lipgloss.PlaceHorizontal(ws.width, lipgloss.Center, workspaceCountHeader)
+	var marginTop, marginBottom int
+	if ws.height > 20 {
+		marginTop = 1
+		marginBottom = 2
+	}
+
+	header := lipgloss.JoinVertical(lipgloss.Center, centeredHeader, title)
+
+	headerStyled := lipgloss.NewStyle().MarginTop(marginTop).Render(header)
+	gridStyled := lipgloss.NewStyle().MarginTop(marginTop).MarginBottom(marginBottom).Render(workspaceGrid)
+	instructionsStyled := lipgloss.NewStyle().Render(instructions)
+
+	return lipgloss.JoinVertical(lipgloss.Center, headerStyled, gridStyled, instructionsStyled)
 }
 
 func (ws *WorkspaceSelectorView) createWorkspaceGrid() string {
@@ -118,7 +124,7 @@ func (ws *WorkspaceSelectorView) createWorkspaceGrid() string {
 	}
 
 	maxVisibleRows := 2
-	if ws.height <= 20 {
+	if ws.height <= 10 {
 		maxVisibleRows = 1
 	}
 
@@ -143,7 +149,64 @@ func (ws *WorkspaceSelectorView) createWorkspaceGrid() string {
 	}
 
 	ws.FlexBox.SetRows(flexRows)
-	return ws.FlexBox.Render()
+	gridContent := ws.FlexBox.Render()
+
+	// Add down arrow indicator if there are more workspaces below
+	if ws.hasMoreWorkspacesBelow() {
+		remainingCount := ws.getRemainingWorkspacesCount()
+		indicator := fmt.Sprintf("↓ %d more below ↓", remainingCount)
+		centeredIndicator := lipgloss.PlaceHorizontal(ws.width, lipgloss.Center, indicator)
+		return lipgloss.JoinVertical(lipgloss.Center, gridContent, centeredIndicator)
+	}
+
+	return gridContent
+}
+
+func (ws *WorkspaceSelectorView) hasMoreWorkspacesBelow() bool {
+	workspaces := ws.stateManager.getWorkspaces()
+	if len(workspaces) == 0 {
+		return false
+	}
+
+	scrollOffset := ws.stateManager.getScrollOffset()
+	cols := 2
+	if len(workspaces) < 2 {
+		cols = len(workspaces)
+	}
+
+	maxVisibleRows := 2
+	if ws.height <= 20 {
+		maxVisibleRows = 1
+	}
+
+	totalVisibleWorkspaces := (scrollOffset + maxVisibleRows) * cols
+	return totalVisibleWorkspaces < len(workspaces)
+}
+
+func (ws *WorkspaceSelectorView) getRemainingWorkspacesCount() int {
+	workspaces := ws.stateManager.getWorkspaces()
+	if len(workspaces) == 0 {
+		return 0
+	}
+
+	scrollOffset := ws.stateManager.getScrollOffset()
+	cols := 2
+	if len(workspaces) < 2 {
+		cols = len(workspaces)
+	}
+
+	maxVisibleRows := 2
+	if ws.height <= 20 {
+		maxVisibleRows = 1
+	}
+
+	totalVisibleWorkspaces := (scrollOffset + maxVisibleRows) * cols
+	remaining := len(workspaces) - totalVisibleWorkspaces
+
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
 }
 
 // calculateWidthPadding calculates padding based on width only
@@ -174,7 +237,7 @@ func (ws *WorkspaceSelectorView) calculateHeightPadding(height int) int {
 		heightThreshold    = 10
 		heightBreakPoint   = 20
 		standardMultiplier = .9
-		highMultiplier     = .7
+		highMultiplier     = .8
 	)
 
 	if height <= heightBreakPoint {
