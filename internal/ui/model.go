@@ -3,9 +3,9 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/paulvinueza30/hyprtask/internal/logger"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
 	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
+	"github.com/paulvinueza30/hyprtask/internal/ui/screens/processlist"
 	"github.com/paulvinueza30/hyprtask/internal/ui/screens/workspaceselector"
 	"github.com/paulvinueza30/hyprtask/internal/ui/theme"
 	"github.com/paulvinueza30/hyprtask/internal/viewmodel"
@@ -19,67 +19,81 @@ type Model struct {
 	windowWidth  int
 	windowHeight int
 
-	ActiveView tea.Model
+	screens      map[ScreenType]tea.Model
+	activeScreen ScreenType
 }
 
 func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.ViewAction) *Model {
 	theme.Init()
 	keymap.Init()
-	model := &Model{displayDataChan: ddChan, viewActionChan: viewActChan}
 
-	model.ActiveView = workspaceselector.NewWorkspaceSelectorView()
+	model := &Model{
+		displayDataChan: ddChan,
+		viewActionChan:  viewActChan,
+		screens: map[ScreenType]tea.Model{
+			WorkspaceSelector: workspaceselector.NewWorkspaceSelectorView(),
+			ProcessList:       processlist.NewProcessList(),
+		},
+		activeScreen: WorkspaceSelector,
+	}
 
 	return model
 }
 
 func (m *Model) Init() tea.Cmd {
 	listenCmd := m.listenToDisplayDataChan()
-	viewCmd := m.ActiveView.Init()
+	var screenCmds []tea.Cmd
 
-	return tea.Batch(listenCmd, viewCmd)
+	for _, screen := range m.screens {
+		screenCmds = append(screenCmds, screen.Init())
+	}
+
+	return tea.Batch(listenCmd, tea.Batch(screenCmds...))
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
 	var listenCmd tea.Cmd
 
-	switch msg := msg.(type) {
+	switch typedMsg := msg.(type) {
 	case viewmodel.DisplayData:
-		m.displayData = msg
+		m.displayData = typedMsg
 		listenCmd = m.listenToDisplayDataChan()
 
-		// Always send workspace data to workspace screen (even if count is 0 to clear display)
-		logger.Log.Info("Processing DisplayData",
-			"workspaceCount", msg.Hypr.WorkspaceCount,
-			"processCount", len(msg.All))
+		msg = messages.NewWorkspaceDataMsg(typedMsg.Hypr)
 
-		workspaceMsg := messages.NewWorkspaceDataMsg(msg.Hypr)
-		// Send this message to the active view
-		m.ActiveView, _ = m.ActiveView.Update(workspaceMsg)
 	case tea.WindowSizeMsg:
-		m.windowWidth = msg.Width
-		m.windowHeight = msg.Height
-		//
-		m.windowHeight = msg.Height - 3
+		m.windowWidth = typedMsg.Width
+		m.windowHeight = typedMsg.Height
+		m.windowHeight = typedMsg.Height - 3
 	}
 
-	var viewCmd tea.Cmd
+	for screenType, screen := range m.screens {
+		var cmd tea.Cmd
+		m.screens[screenType], cmd = screen.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
-	// TODO: propagate msg to all screens not just the active view
-	m.ActiveView, viewCmd = m.ActiveView.Update(msg)
-
-	return m, tea.Batch(listenCmd, viewCmd)
+	cmds = append(cmds, listenCmd)
+	return m, tea.Batch(cmds...)
 }
 
 func (m *Model) View() string {
-	// TODO: HEADER LOGO AND ASCII ART
 	header := theme.Get().Header.
 		Width(m.windowWidth).Height(m.windowHeight / 10).
 		Align(lipgloss.Center).Render("HyprTask")
 
-	content := m.ActiveView.View()
+	content := m.screens[m.activeScreen].View()
 
 	return lipgloss.JoinVertical(lipgloss.Center, header, content)
 }
+
+func (m *Model) SetActiveScreen(st ScreenType) {
+	if _, exists := m.screens[st]; exists {
+		m.activeScreen = st
+	}
+}
+
 func (m *Model) listenToDisplayDataChan() tea.Cmd {
 	return func() tea.Msg {
 		displayData := <-m.displayDataChan
