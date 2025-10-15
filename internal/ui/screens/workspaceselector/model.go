@@ -6,7 +6,6 @@ import (
 	"github.com/76creates/stickers/flexbox"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/paulvinueza30/hyprtask/internal/logger"
 	"github.com/paulvinueza30/hyprtask/internal/ui/components/viewtitle"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
 	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
@@ -56,10 +55,6 @@ func (ws *WorkspaceSelectorView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := ws.stateManager.handleKeyMsg(msg)
 		return ws, cmd
 	case tea.WindowSizeMsg:
-		logger.Log.Tui().Info("WindowSizeMsg",
-			"width", msg.Width,
-			"height", msg.Height)
-
 		widthPadding := ws.calculateWidthPadding(msg.Width)
 		heightPadding := ws.calculateHeightPadding(msg.Height)
 
@@ -97,7 +92,7 @@ func (ws *WorkspaceSelectorView) View() string {
 	var marginTop, marginBottom int
 	if ws.height > 20 {
 		marginTop = 1
-		marginBottom = 2
+		marginBottom = 1
 	}
 
 	header := lipgloss.JoinVertical(lipgloss.Center, centeredHeader, title)
@@ -124,7 +119,7 @@ func (ws *WorkspaceSelectorView) createWorkspaceGrid() string {
 	}
 
 	maxVisibleRows := 2
-	if ws.height <= 10 {
+	if ws.height <= 20 {
 		maxVisibleRows = 1
 	}
 

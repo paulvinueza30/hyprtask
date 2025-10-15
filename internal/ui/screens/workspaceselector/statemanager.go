@@ -66,7 +66,7 @@ func (sm *stateManager) createWorkspaceBoxes(workspaceData []*viewmodel.Workspac
 		newWorkspaceIDToIndex[workspaceID] = i
 
 		// Reuse existing workspace box if it exists, otherwise create new one
-		if oldIndex, exists := sm.state.workspaceIDToIndex[workspaceID]; exists {
+		if oldIndex, exists := sm.state.workspaceIDToIndex[workspaceID]; exists && oldIndex < len(sm.state.workspaces) {
 			// Reuse existing workspace box and update data
 			existingBox := sm.state.workspaces[oldIndex]
 			newWorkspaces = append(newWorkspaces, existingBox)
