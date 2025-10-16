@@ -4,6 +4,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/paulvinueza30/hyprtask/internal/ui/components/workspacebox"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
+	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
+	"github.com/paulvinueza30/hyprtask/internal/ui/screens"
 	"github.com/paulvinueza30/hyprtask/internal/viewmodel"
 )
 
@@ -211,6 +213,8 @@ func (sm *stateManager) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		sm.scrollUp()
 	case "scroll_down":
 		sm.scrollDown()
+	case "change_to_all_procs_view":
+		return sm.changeToAllProcsView()
 	}
 
 	return nil
@@ -290,5 +294,11 @@ func (sm *stateManager) ensureSelectionVisible() {
 		sm.state.scrollOffset = selectedRow
 	} else if selectedRow >= sm.state.scrollOffset+visibleRows {
 		sm.state.scrollOffset = selectedRow - visibleRows + 1
+	}
+}
+
+func (sm *stateManager) changeToAllProcsView() tea.Cmd {
+	return func() tea.Msg {
+		return messages.NewChangeScreenMsg(screens.ProcessList)
 	}
 }

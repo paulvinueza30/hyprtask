@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
 	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
+	"github.com/paulvinueza30/hyprtask/internal/ui/screens"
 	"github.com/paulvinueza30/hyprtask/internal/ui/screens/processlist"
 	"github.com/paulvinueza30/hyprtask/internal/ui/screens/workspaceselector"
 	"github.com/paulvinueza30/hyprtask/internal/ui/theme"
@@ -19,8 +20,8 @@ type Model struct {
 	windowWidth  int
 	windowHeight int
 
-	screens      map[ScreenType]tea.Model
-	activeScreen ScreenType
+	screens      map[screens.ScreenType]tea.Model
+	activeScreen screens.ScreenType
 }
 
 func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.ViewAction) *Model {
@@ -30,11 +31,12 @@ func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.View
 	model := &Model{
 		displayDataChan: ddChan,
 		viewActionChan:  viewActChan,
-		screens: map[ScreenType]tea.Model{
-			WorkspaceSelector: workspaceselector.NewWorkspaceSelectorView(),
-			ProcessList:       processlist.NewProcessList(),
+		screens: map[screens.ScreenType]tea.Model{
+			screens.WorkspaceSelector: workspaceselector.NewWorkspaceSelectorView(),
+			screens.ProcessList:       processlist.NewProcessList(),
 		},
-		activeScreen: WorkspaceSelector,
+		// TODO: Make this dynamic based on if theres workspaces or not
+		activeScreen: screens.WorkspaceSelector,
 	}
 
 	return model
@@ -62,6 +64,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		msg = messages.NewWorkspaceDataMsg(typedMsg.Hypr)
 
+	case messages.ChangeScreenMsg:
+		m.SetActiveScreen(typedMsg.ScreenType)
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.windowWidth = typedMsg.Width
 		m.windowHeight = typedMsg.Height
@@ -88,7 +94,7 @@ func (m *Model) View() string {
 	return lipgloss.JoinVertical(lipgloss.Center, header, content)
 }
 
-func (m *Model) SetActiveScreen(st ScreenType) {
+func (m *Model) SetActiveScreen(st screens.ScreenType) {
 	if _, exists := m.screens[st]; exists {
 		m.activeScreen = st
 	}

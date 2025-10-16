@@ -9,6 +9,7 @@ import (
 	"github.com/paulvinueza30/hyprtask/internal/ui/components/viewtitle"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
 	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
+	"github.com/paulvinueza30/hyprtask/internal/ui/screens"
 	"github.com/paulvinueza30/hyprtask/internal/ui/theme"
 )
 
@@ -86,7 +87,7 @@ func (ws *WorkspaceSelectorView) View() string {
 	workspaceCountHeader := theme.Get().WorkspaceView.Title.Render(fmt.Sprintf("%d Workspaces", ws.stateManager.getWorkspaceCount()))
 	title := ws.Title.View()
 	workspaceGrid := ws.createWorkspaceGrid()
-	instructions := theme.Get().WorkspaceView.Details.Render(keymap.Get().GetHelpText())
+	instructions := theme.Get().WorkspaceView.Details.Render(keymap.Get().GetHelpText(screens.WorkspaceSelector))
 
 	centeredHeader := lipgloss.PlaceHorizontal(ws.width, lipgloss.Center, workspaceCountHeader)
 	var marginTop, marginBottom int

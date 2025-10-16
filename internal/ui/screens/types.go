@@ -1,6 +1,5 @@
-package ui
+package screens
 
-// ScreenType represents different screens in the application
 type ScreenType int
 
 const (
