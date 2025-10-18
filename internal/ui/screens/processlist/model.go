@@ -7,16 +7,19 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/paulvinueza30/hyprtask/internal/taskmanager"
+	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
 	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
 )
 
 type ProcessList struct {
-	processes []taskmanager.TaskProcess
+	processes    []taskmanager.TaskProcess
+	stateManager *stateManager
 }
 
 func NewProcessList(procs []taskmanager.TaskProcess) *ProcessList {
 	return &ProcessList{
-		processes: procs,
+		processes:    procs,
+		stateManager: newStateManager(),
 	}
 }
 
@@ -29,15 +32,14 @@ func (p *ProcessList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case messages.ProcessListMsg:
 		p.processes = typedMsg.Processes
 		return p, nil
+	case tea.KeyMsg:
+		return p, p.stateManager.handleKeyMsg(typedMsg)
 	}
 
 	return p, nil
 }
 
 func (p *ProcessList) View() string {
-	if len(p.processes) == 0 {
-		return "No processes available"
-	}
 
 	title := "Process List"
 	header := lipgloss.NewStyle().
@@ -54,6 +56,7 @@ func (p *ProcessList) View() string {
 		processLine := fmt.Sprintf("%d. Process (PID: %d)", i+1, process.PID)
 		content.WriteString(processLine + "\n")
 	}
+	instructions := "Press " + keymap.Get().ChangeToWorkspaceSelectorScreen.Help().Key + " to change to workspace view"
 
-	return content.String()
+	return lipgloss.JoinVertical(lipgloss.Center, header, content.String(), instructions)
 }

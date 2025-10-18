@@ -70,6 +70,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		msg.ScreenMsg.Processes = processes
 		m.SetActiveScreen(msg.ScreenType)
 		broadcastMsg = msg.ScreenMsg
+	case messages.ChangeScreenMsg[messages.WorkspaceListMsg]:
+		m.SetActiveScreen(msg.ScreenType)
+		broadcastMsg = msg.ScreenMsg
 
 	case tea.WindowSizeMsg:
 		m.windowWidth = msg.Width

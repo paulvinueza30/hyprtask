@@ -8,14 +8,15 @@ import (
 
 // KeyMap defines all the key bindings for the application
 type KeyMap struct {
-	Quit                   key.Binding
-	NavigateLeft           key.Binding
-	NavigateRight          key.Binding
-	NavigateUp             key.Binding
-	NavigateDown           key.Binding
-	ScrollUp               key.Binding
-	ScrollDown             key.Binding
-	ChangeToAllProcsScreen key.Binding
+	Quit                            key.Binding
+	NavigateLeft                    key.Binding
+	NavigateRight                   key.Binding
+	NavigateUp                      key.Binding
+	NavigateDown                    key.Binding
+	ScrollUp                        key.Binding
+	ScrollDown                      key.Binding
+	ChangeToAllProcsScreen          key.Binding
+	ChangeToWorkspaceSelectorScreen key.Binding
 }
 
 var keyMap KeyMap
@@ -38,6 +39,7 @@ func NewDefaultKeyMap() KeyMap {
 	km.setScrollUpKeys("pgup", "u")
 	km.setScrollDownKeys("pgdown", "d")
 	km.setChangeToAllProcsScreenKeys("p", "ctrl+p")
+	km.setChangeToWorkspaceSelectorScreenKeys("w", "ctrl+w")
 	return km
 }
 
@@ -68,12 +70,7 @@ func (km KeyMap) getWorkspaceSelectorHelpText() string {
 }
 
 func (km KeyMap) getProcessListHelpText() string {
-	leftKeys := km.NavigateLeft.Help().Key
-	rightKeys := km.NavigateRight.Help().Key
-	upKeys := km.NavigateUp.Help().Key
-	downKeys := km.NavigateDown.Help().Key
-
-	return leftKeys + "/" + rightKeys + "/" + upKeys + "/" + downKeys + ": navigate"
+	return km.ChangeToAllProcsScreen.Help().Key + ": view all processes"
 }
 
 // HandleKeyMsg processes key messages for navigation
@@ -95,6 +92,8 @@ func (km KeyMap) HandleKeyMsg(msg tea.KeyMsg) (string, bool) {
 		return "scroll_down", true
 	case key.Matches(msg, km.ChangeToAllProcsScreen):
 		return "change_to_all_procs_view", true
+	case key.Matches(msg, km.ChangeToWorkspaceSelectorScreen):
+		return "change_to_workspace_view", true
 	default:
 		return "", false
 	}
@@ -155,5 +154,12 @@ func (km *KeyMap) setChangeToAllProcsScreenKeys(keys ...string) {
 	km.ChangeToAllProcsScreen = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "view all processes"),
+	)
+}
+
+func (km *KeyMap) setChangeToWorkspaceSelectorScreenKeys(keys ...string) {
+	km.ChangeToWorkspaceSelectorScreen = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "change to workspace view"),
 	)
 }
