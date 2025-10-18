@@ -82,7 +82,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Height: msg.Height - 3,
 		}
 	case tea.KeyMsg:
-		broadcastMsg = msg
+		if activeScreen, exists := m.screens[m.activeScreen]; exists {
+			updatedScreen, cmd := activeScreen.Update(msg)
+			m.screens[m.activeScreen] = updatedScreen
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
 	}
 
 	if broadcastMsg != nil {
