@@ -12,14 +12,12 @@ import (
 )
 
 type ProcessList struct {
-	processes    []taskmanager.TaskProcess
 	stateManager *stateManager
 }
 
 func NewProcessList(procs []taskmanager.TaskProcess) *ProcessList {
 	return &ProcessList{
-		processes:    procs,
-		stateManager: newStateManager(),
+		stateManager: newStateManager(procs),
 	}
 }
 
@@ -30,7 +28,7 @@ func (p *ProcessList) Init() tea.Cmd {
 func (p *ProcessList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch typedMsg := msg.(type) {
 	case messages.ProcessListMsg:
-		p.processes = typedMsg.Processes
+		p.stateManager.setState(typedMsg)
 		return p, nil
 	case tea.KeyMsg:
 		return p, p.stateManager.handleKeyMsg(typedMsg)
@@ -40,8 +38,13 @@ func (p *ProcessList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p *ProcessList) View() string {
+	wsName := p.stateManager.getWorkspaceName()
+	wsNameStr := "all"
+	if wsName != nil {
+		wsNameStr = *wsName
+	}
 
-	title := "Process List"
+	title := fmt.Sprintf("Process List for workspace %s", wsNameStr)
 	header := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("205")).
@@ -50,12 +53,11 @@ func (p *ProcessList) View() string {
 	header = lipgloss.PlaceHorizontal(80, lipgloss.Center, header)
 
 	var content strings.Builder
-	content.WriteString(header + "\n\n")
-
-	for i, process := range p.processes {
+	for i, process := range p.stateManager.getProcs() {
 		processLine := fmt.Sprintf("%d. Process (PID: %d)", i+1, process.PID)
 		content.WriteString(processLine + "\n")
 	}
+
 	instructions := "Press " + keymap.Get().ChangeToWorkspaceSelectorScreen.Help().Key + " to change to workspace view"
 
 	return lipgloss.JoinVertical(lipgloss.Center, header, content.String(), instructions)

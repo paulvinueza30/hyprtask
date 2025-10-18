@@ -1,6 +1,8 @@
 package keymap
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/paulvinueza30/hyprtask/internal/ui/screens"
@@ -17,6 +19,7 @@ type KeyMap struct {
 	ScrollDown                      key.Binding
 	ChangeToAllProcsScreen          key.Binding
 	ChangeToWorkspaceSelectorScreen key.Binding
+	SelectWorkspace                 key.Binding
 }
 
 var keyMap KeyMap
@@ -40,6 +43,7 @@ func NewDefaultKeyMap() KeyMap {
 	km.setScrollDownKeys("pgdown", "d")
 	km.setChangeToAllProcsScreenKeys("p", "ctrl+p")
 	km.setChangeToWorkspaceSelectorScreenKeys("w", "ctrl+w")
+	km.setSelectWorkspaceKeys("enter", "return")
 	return km
 }
 
@@ -56,17 +60,12 @@ func (km KeyMap) GetHelpText(screenType screens.ScreenType) string {
 }
 
 func (km KeyMap) getWorkspaceSelectorHelpText() string {
-	leftKeys := km.NavigateLeft.Help().Key
-	rightKeys := km.NavigateRight.Help().Key
-	upKeys := km.NavigateUp.Help().Key
-	downKeys := km.NavigateDown.Help().Key
-	scrollUpKeys := km.ScrollUp.Help().Key
-	scrollDownKeys := km.ScrollDown.Help().Key
-	processKeys := km.ChangeToAllProcsScreen.Help().Key
+	navigateKeys := fmt.Sprintf("%s/%s/%s/%s",
+		km.NavigateLeft.Help().Key, km.NavigateRight.Help().Key, km.NavigateUp.Help().Key, km.NavigateDown.Help().Key)
+	scrollKeys := fmt.Sprintf("%s/%s", km.ScrollUp.Help().Key, km.ScrollDown.Help().Key)
 
-	return leftKeys + "/" + rightKeys + "/" + upKeys + "/" + downKeys + ": navigate, " +
-		scrollUpKeys + "/" + scrollDownKeys + ": scroll, " +
-		processKeys + ": view all processes"
+	return fmt.Sprintf("%s: navigate, %s: scroll, %s: view all processes, %s: select workspace",
+		navigateKeys, scrollKeys, km.ChangeToAllProcsScreen.Help().Key, km.SelectWorkspace.Help().Key)
 }
 
 func (km KeyMap) getProcessListHelpText() string {
@@ -94,6 +93,8 @@ func (km KeyMap) HandleKeyMsg(msg tea.KeyMsg) (string, bool) {
 		return "change_to_all_procs_view", true
 	case key.Matches(msg, km.ChangeToWorkspaceSelectorScreen):
 		return "change_to_workspace_view", true
+	case key.Matches(msg, km.SelectWorkspace):
+		return "select_workspace", true
 	default:
 		return "", false
 	}
@@ -149,17 +150,21 @@ func (km *KeyMap) setScrollDownKeys(keys ...string) {
 		key.WithHelp(keys[0], "scroll down"),
 	)
 }
-
 func (km *KeyMap) setChangeToAllProcsScreenKeys(keys ...string) {
 	km.ChangeToAllProcsScreen = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "view all processes"),
 	)
 }
-
 func (km *KeyMap) setChangeToWorkspaceSelectorScreenKeys(keys ...string) {
 	km.ChangeToWorkspaceSelectorScreen = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "change to workspace view"),
+	)
+}
+func (km *KeyMap) setSelectWorkspaceKeys(keys ...string) {
+	km.SelectWorkspace = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "select workspace"),
 	)
 }

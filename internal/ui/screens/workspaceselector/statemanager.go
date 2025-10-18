@@ -215,6 +215,10 @@ func (sm *stateManager) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		sm.scrollDown()
 	case "change_to_all_procs_view":
 		return sm.changeToAllProcsView()
+	case "select_workspace":
+		return sm.changeToWorkspaceProcsView()
+	default:
+		return nil
 	}
 
 	return nil
@@ -303,9 +307,19 @@ func (sm *stateManager) changeToAllProcsView() tea.Cmd {
 	}
 }
 
-func (sm *stateManager) changeToWorkspaceProcsView(workspaceID int) tea.Cmd {
-	return func() tea.Msg {
-		workspaceID := workspaceID // capture for closure
-		return messages.NewChangeScreenMsg(screens.ProcessList, messages.NewWorkspaceProcessesMsg(workspaceID))
+func (sm *stateManager) changeToWorkspaceProcsView() tea.Cmd {
+	selectedIndex := sm.getWorkspaceIndex(sm.state.selected)
+	if selectedIndex >= len(sm.state.workspaces) {
+		return nil
 	}
+
+	selectedWorkspace := sm.state.workspaces[selectedIndex]
+	if workspaceBox, ok := selectedWorkspace.(*workspacebox.WorkspaceBox); ok {
+		wsID := workspaceBox.ID
+		wsName := workspaceBox.Name
+		return func() tea.Msg {
+			return messages.NewChangeScreenMsg(screens.ProcessList, messages.NewWorkspaceProcessesMsg(wsID, wsName))
+		}
+	}
+	return nil
 }

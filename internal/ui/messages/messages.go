@@ -30,8 +30,9 @@ type ScreenMsg interface {
 // Screen-specific message types
 
 type ProcessListMsg struct {
-	WorkspaceID *int                      // nil = all processes, &workspaceID = specific workspace
-	Processes   []taskmanager.TaskProcess // actual process data
+	WorkspaceID   *int                      // nil = all processes, &workspaceID = specific workspace (for logic)
+	WorkspaceName *string                   // nil = all processes, &workspaceName = specific workspace (for display)
+	Processes     []taskmanager.TaskProcess // actual process data
 }
 
 type WorkspaceListMsg struct {
@@ -45,17 +46,18 @@ func NewChangeScreenMsg[T ScreenMsg](screenType screens.ScreenType, screenMsg T)
 	}
 }
 
-func NewProcessListMsg(workspaceID *int) ProcessListMsg {
+func NewProcessListMsg(workspaceID *int, workspaceName *string) ProcessListMsg {
 	return ProcessListMsg{
-		WorkspaceID: workspaceID,
-		Processes:   []taskmanager.TaskProcess{},
+		WorkspaceID:   workspaceID,
+		WorkspaceName: workspaceName,
+		Processes:     []taskmanager.TaskProcess{},
 	}
 }
 
 func NewAllProcessesMsg() ProcessListMsg {
-	return NewProcessListMsg(nil)
+	return NewProcessListMsg(nil, nil)
 }
 
-func NewWorkspaceProcessesMsg(workspaceID int) ProcessListMsg {
-	return NewProcessListMsg(&workspaceID)
+func NewWorkspaceProcessesMsg(workspaceID int, workspaceName string) ProcessListMsg {
+	return NewProcessListMsg(&workspaceID, &workspaceName)
 }

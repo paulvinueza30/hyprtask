@@ -62,8 +62,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case viewmodel.DisplayData:
 		m.displayData = msg
 		cmds = append(cmds, m.listenToDisplayDataChan())
-
-		cmds = append(cmds, m.updateScreensWithDisplayData()...)
+		cmds = append(cmds, m.updateWorkspaceSelectorWithDisplayData()...)
 
 	case messages.ChangeScreenMsg[messages.ProcessListMsg]:
 		processes := m.getProcsForWorkspace(msg.ScreenMsg.WorkspaceID)
@@ -137,24 +136,13 @@ func (m *Model) broadcastToScreens(msg tea.Msg) []tea.Cmd {
 	return cmds
 }
 
-func (m *Model) updateScreensWithDisplayData() []tea.Cmd {
+func (m *Model) updateWorkspaceSelectorWithDisplayData() []tea.Cmd {
 	var cmds []tea.Cmd
 
 	workspaceMsg := messages.NewWorkspaceDataMsg(m.displayData.Hypr)
 	if screen, exists := m.screens[screens.WorkspaceSelector]; exists {
 		updatedScreen, cmd := screen.Update(workspaceMsg)
 		m.screens[screens.WorkspaceSelector] = updatedScreen
-		if cmd != nil {
-			cmds = append(cmds, cmd)
-		}
-	}
-
-	processMsg := messages.NewAllProcessesMsg()
-	// pass in nil for all processes
-	processMsg.Processes = m.getProcsForWorkspace(nil)
-	if screen, exists := m.screens[screens.ProcessList]; exists {
-		updatedScreen, cmd := screen.Update(processMsg)
-		m.screens[screens.ProcessList] = updatedScreen
 		if cmd != nil {
 			cmds = append(cmds, cmd)
 		}
