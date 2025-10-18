@@ -3,6 +3,7 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/paulvinueza30/hyprtask/internal/taskmanager"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
 	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
 	"github.com/paulvinueza30/hyprtask/internal/ui/screens"
@@ -33,7 +34,7 @@ func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.View
 		viewActionChan:  viewActChan,
 		screens: map[screens.ScreenType]tea.Model{
 			screens.WorkspaceSelector: workspaceselector.NewWorkspaceSelectorView(),
-			screens.ProcessList:       processlist.NewProcessList(),
+			screens.ProcessList:       processlist.NewProcessList([]taskmanager.TaskProcess{}),
 		},
 		// TODO: Make this dynamic based on if theres workspaces or not
 		activeScreen: screens.WorkspaceSelector,
@@ -55,32 +56,37 @@ func (m *Model) Init() tea.Cmd {
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
-	var listenCmd tea.Cmd
+	var broadcastMsg tea.Msg
 
-	switch typedMsg := msg.(type) {
+	switch msg := msg.(type) {
 	case viewmodel.DisplayData:
-		m.displayData = typedMsg
-		listenCmd = m.listenToDisplayDataChan()
+		m.displayData = msg
+		cmds = append(cmds, m.listenToDisplayDataChan())
 
-		msg = messages.NewWorkspaceDataMsg(typedMsg.Hypr)
+		cmds = append(cmds, m.updateScreensWithDisplayData()...)
 
-	case messages.ChangeScreenMsg:
-		m.SetActiveScreen(typedMsg.ScreenType)
-		return m, nil
+	case messages.ChangeScreenMsg[messages.ProcessListMsg]:
+		processes := m.getProcsForWorkspace(msg.ScreenMsg.WorkspaceID)
+		msg.ScreenMsg.Processes = processes
+		m.SetActiveScreen(msg.ScreenType)
+		broadcastMsg = msg.ScreenMsg
 
 	case tea.WindowSizeMsg:
-		m.windowWidth = typedMsg.Width
-		m.windowHeight = typedMsg.Height
-		m.windowHeight = typedMsg.Height - 3
+		m.windowWidth = msg.Width
+		m.windowHeight = msg.Height
+		// Create a copy for broadcasting (space for the header)
+		broadcastMsg = tea.WindowSizeMsg{
+			Width:  msg.Width,
+			Height: msg.Height - 3,
+		}
+	case tea.KeyMsg:
+		broadcastMsg = msg
 	}
 
-	for screenType, screen := range m.screens {
-		var cmd tea.Cmd
-		m.screens[screenType], cmd = screen.Update(msg)
-		cmds = append(cmds, cmd)
+	if broadcastMsg != nil {
+		cmds = append(cmds, m.broadcastToScreens(broadcastMsg)...)
 	}
 
-	cmds = append(cmds, listenCmd)
 	return m, tea.Batch(cmds...)
 }
 
@@ -105,4 +111,51 @@ func (m *Model) listenToDisplayDataChan() tea.Cmd {
 		displayData := <-m.displayDataChan
 		return displayData
 	}
+}
+
+func (m *Model) getProcsForWorkspace(workspaceID *int) []taskmanager.TaskProcess {
+	if workspaceID == nil {
+		return m.displayData.All
+	} else {
+		if workspaceData, exists := m.displayData.Hypr.WorkspaceToProcs[*workspaceID]; exists {
+			return workspaceData.ActiveProcs
+		}
+		return []taskmanager.TaskProcess{}
+	}
+}
+
+func (m *Model) broadcastToScreens(msg tea.Msg) []tea.Cmd {
+	var cmds []tea.Cmd
+	for screenType, screen := range m.screens {
+		var cmd tea.Cmd
+		m.screens[screenType], cmd = screen.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+	return cmds
+}
+
+func (m *Model) updateScreensWithDisplayData() []tea.Cmd {
+	var cmds []tea.Cmd
+
+	workspaceMsg := messages.NewWorkspaceDataMsg(m.displayData.Hypr)
+	if screen, exists := m.screens[screens.WorkspaceSelector]; exists {
+		updatedScreen, cmd := screen.Update(workspaceMsg)
+		m.screens[screens.WorkspaceSelector] = updatedScreen
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+	}
+
+	processMsg := messages.NewAllProcessesMsg()
+	// pass in nil for all processes
+	processMsg.Processes = m.getProcsForWorkspace(nil)
+	if screen, exists := m.screens[screens.ProcessList]; exists {
+		updatedScreen, cmd := screen.Update(processMsg)
+		m.screens[screens.ProcessList] = updatedScreen
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+	}
+
+	return cmds
 }

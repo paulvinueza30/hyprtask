@@ -299,6 +299,13 @@ func (sm *stateManager) ensureSelectionVisible() {
 
 func (sm *stateManager) changeToAllProcsView() tea.Cmd {
 	return func() tea.Msg {
-		return messages.NewChangeScreenMsg(screens.ProcessList)
+		return messages.NewChangeScreenMsg(screens.ProcessList, messages.NewAllProcessesMsg())
+	}
+}
+
+func (sm *stateManager) changeToWorkspaceProcsView(workspaceID int) tea.Cmd {
+	return func() tea.Msg {
+		workspaceID := workspaceID // capture for closure
+		return messages.NewChangeScreenMsg(screens.ProcessList, messages.NewWorkspaceProcessesMsg(workspaceID))
 	}
 }
