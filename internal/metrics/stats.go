@@ -1,4 +1,4 @@
-package proc
+package metrics
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ type SystemMonitor struct {
 	tickDuration time.Duration
 }
 
-func Init(tickDuration time.Duration) (*SystemMonitor, error) {
+func NewSystemMonitor(tickDuration time.Duration) (*SystemMonitor, error) {
 	fs, err := procfs.NewFS("/proc")
 	if err != nil {
 		logger.Log.Error("cannot set fs procfs: " + err.Error())

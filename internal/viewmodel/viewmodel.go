@@ -14,7 +14,6 @@ type ViewModel struct {
 	actionChan      <-chan ViewAction
 	displayDataChan chan<- DisplayData
 
-	mode taskmanager.Mode
 	// viewLayout any // implement later need to think more
 	viewOptions *ViewOptions
 
@@ -24,13 +23,12 @@ type ViewModel struct {
 	mu sync.RWMutex
 }
 
-func NewViewModel(mode taskmanager.Mode, ssChan chan taskmanager.Snapshot, acChan chan ViewAction, ddChan chan DisplayData) *ViewModel {
+func NewViewModel(ssChan chan taskmanager.Snapshot, acChan chan ViewAction, ddChan chan DisplayData) *ViewModel {
 	viewOptions := &ViewOptions{SortBy: SortByNone, SortOrder: OrderNone}
 	return &ViewModel{
 		snapshotChan:    ssChan,
 		actionChan:      acChan,
 		displayDataChan: ddChan,
-		mode:            mode,
 		viewOptions:     viewOptions,
 		currentSnapshot: nil,
 	}
@@ -59,9 +57,7 @@ func (v *ViewModel) buildDisplayData() {
 	defer v.mu.Unlock()
 	procs := v.currentSnapshot.Processes
 	var wsDisplayData WorkspaceDisplayData
-	if v.mode == taskmanager.Hypr {
-		wsDisplayData = v.buildWorkspaceDisplayData(procs)
-	}
+	wsDisplayData = v.buildWorkspaceDisplayData(procs)
 	v.applyViewOptions(procs)
 
 	v.displayData = DisplayData{All: procs, Hypr: wsDisplayData}
@@ -112,13 +108,18 @@ func (v *ViewModel) buildWorkspaceDisplayData(procs []taskmanager.TaskProcess) W
 
 	workspaceCount := 0
 	for _, proc := range procs {
-		wID := proc.Meta.Client.Workspace.ID
+		// Only process procs that have Hyprland metadata
+		if proc.Meta == nil || proc.Meta.HyprlandMeta == nil {
+			continue
+		}
+		
+		wID := proc.Meta.HyprlandMeta.Workspace.ID
 		var wsData *WorkspaceData
 		wsData, ok := workspaceToWorkspaceData[wID]
 		if !ok {
 			workspaceToWorkspaceData[wID] = &WorkspaceData{}
 			wsData = workspaceToWorkspaceData[wID]
-			wsData.WorkspaceName = proc.Meta.Client.Workspace.Name
+			wsData.WorkspaceName = proc.Meta.HyprlandMeta.Workspace.Name
 			wsData.WorkspaceID = wID
 		}
 		wsData.TotalCPU += proc.Metrics.CPU

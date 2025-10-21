@@ -3,26 +3,18 @@ package taskmanager
 import (
 	"time"
 
-	"github.com/paulvinueza30/hyprtask/internal/proc"
-	"github.com/paulvinueza30/hyprtask/internal/taskmanager/providers"
+	"github.com/paulvinueza30/hyprtask/internal/hypr"
+	"github.com/paulvinueza30/hyprtask/internal/metrics"
 )
 
-type Mode string
-
-const (
-	Hypr Mode = "hypr"
-	All  Mode = "all"
-)
-
-var stringToMode = map[string]Mode{
-	"all":  All,
-	"hypr": Hypr,
+type Meta struct {
+	HyprlandMeta *hypr.HyprlandMeta
 }
 
 type TaskProcess struct {
 	PID     int
-	Meta    providers.Meta
-	Metrics proc.Metrics
+	Meta    *Meta
+	Metrics metrics.Metrics
 }
 
 type Snapshot struct {

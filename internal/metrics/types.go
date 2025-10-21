@@ -1,4 +1,4 @@
-package proc
+package metrics
 
 type Metrics struct{
 	CPU float64

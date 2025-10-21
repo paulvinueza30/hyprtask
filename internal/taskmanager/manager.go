@@ -1,20 +1,21 @@
 package taskmanager
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
+	"github.com/paulvinueza30/hyprtask/internal/hypr"
 	"github.com/paulvinueza30/hyprtask/internal/logger"
-	"github.com/paulvinueza30/hyprtask/internal/proc"
-	"github.com/paulvinueza30/hyprtask/internal/taskmanager/providers"
+	"github.com/paulvinueza30/hyprtask/internal/metrics"
+	"github.com/paulvinueza30/hyprtask/internal/procprovider"
 )
 
 type TaskManager struct {
 	pollingInterval time.Duration
-	systemMonitor   proc.SystemMonitor
-	mode            Mode
-	procProvider    providers.ProcessProvider
+	systemMonitor   metrics.SystemMonitor
+	procProvider    procprovider.ProcProvider
+	
+	hyprlandClient  *hypr.HyprlandClient
 
 	activeProcesses map[int]TaskProcess // PID to task
 	mu              sync.RWMutex
@@ -23,23 +24,17 @@ type TaskManager struct {
 	taskActionChan <-chan TaskAction
 }
 
-var procProviders = map[Mode]providers.ProcessProvider{
-	Hypr: providers.NewHyprlandProvider(),
-}
 
-func NewTaskManager(mode string, pollInterval time.Duration, snapshotChan chan Snapshot, taskActionChan chan TaskAction) (*TaskManager, error) {
-	m, ok := stringToMode[mode]
-	if !ok {
-		return nil, fmt.Errorf("invalid mode for task manager: %s", mode)
-	}
-	procProvider := procProviders[m]
-	systemMonitor, err := proc.Init(time.Second * 4)
+func NewTaskManager(pollInterval time.Duration, snapshotChan chan Snapshot, taskActionChan chan TaskAction) (*TaskManager, error) {
+	procProvider := procprovider.NewProcProvider()
+	systemMonitor, err := metrics.NewSystemMonitor(time.Second * 4)
+	hyprlandClient := hypr.NewHyprlandClient()
 	if err != nil {
 		return nil, err
 	}
 
 	activeProcesses := make(map[int]TaskProcess)
-	return &TaskManager{mode: m, pollingInterval: pollInterval, systemMonitor: *systemMonitor, procProvider: procProvider, activeProcesses: activeProcesses, snapshotChan: snapshotChan, taskActionChan: taskActionChan}, nil
+	return &TaskManager{pollingInterval: pollInterval, systemMonitor: *systemMonitor, procProvider: procProvider, hyprlandClient: hyprlandClient, activeProcesses: activeProcesses, snapshotChan: snapshotChan, taskActionChan: taskActionChan}, nil
 }
 
 func (t *TaskManager) Start() {
@@ -65,13 +60,19 @@ func (t *TaskManager) updateTaskProcesses() {
 		return
 	}
 
-	t.deleteInactiveProcesses(procs)
-	t.updateActiveProcesses(procs)
+	// Convert slice to map for easier lookup
+	procMap := make(map[int]procprovider.Proc)
+	for _, proc := range procs {
+		procMap[proc.PID] = proc
+	}
 
+	t.deleteInactiveProcesses(procMap)
+	t.updateActiveProcesses(procMap)
+	t.injectHyprlandMeta()
 	t.sendSnapshot()
 }
 
-func (t *TaskManager) deleteInactiveProcesses(procs map[int]providers.Proc) {
+func (t *TaskManager) deleteInactiveProcesses(procs map[int]procprovider.Proc) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	logger.Log.Info("active processes now: ", "active procs before", len(t.activeProcesses))
@@ -92,11 +93,11 @@ func (t *TaskManager) deleteInactiveProcesses(procs map[int]providers.Proc) {
 	logger.Log.Info("proc details", "active procs", len(t.activeProcesses), "procs deleted", deletedCount)
 }
 
-func (t *TaskManager) updateActiveProcesses(procs map[int]providers.Proc) {
+func (t *TaskManager) updateActiveProcesses(procs map[int]procprovider.Proc) {
 	var wg sync.WaitGroup
 	for pid, p := range procs {
 		wg.Add(1)
-		go func(pid int, meta providers.Meta) {
+		go func(pid int, proc procprovider.Proc) {
 			defer wg.Done()
 			m, err := t.systemMonitor.GetMetrics(pid)
 			if err != nil {
@@ -108,10 +109,10 @@ func (t *TaskManager) updateActiveProcesses(procs map[int]providers.Proc) {
 			defer t.mu.Unlock()
 			t.activeProcesses[pid] = TaskProcess{
 				PID:     pid,
-				Meta:    meta,
 				Metrics: *m,
+				Meta:    &Meta{},
 			}
-		}(pid, p.Meta)
+		}(pid, p)
 	}
 	wg.Wait()
 }
@@ -135,5 +136,19 @@ func (t *TaskManager) sendSnapshot() {
 
 	default:
 		logger.Log.Warn("skipped snapshot send - channel full")
+	}
+}
+func (t *TaskManager) injectHyprlandMeta() {
+	hyprlandMeta, err := t.hyprlandClient.GetHyprlandMeta()
+	if err != nil {
+		logger.Log.Error("could not get hyprland meta: " + err.Error())
+		return
+	}
+	for pid, meta := range hyprlandMeta {
+		if taskProcess, ok := t.activeProcesses[pid]; ok {
+			taskProcess.Meta.HyprlandMeta = &meta
+		}else {
+			logger.Log.Warn("process not found in active processes", "pid", pid)
+		}
 	}
 }

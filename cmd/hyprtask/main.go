@@ -15,15 +15,14 @@ func main() {
 	logger.Init()
 
 	snapshotChan := make(chan taskmanager.Snapshot, 1)
-	defaultMode := "hypr"
 	taskActionChan := make(chan taskmanager.TaskAction, 10)
-	tm, err := taskmanager.NewTaskManager(defaultMode, 5*time.Second, snapshotChan, taskActionChan)
+	tm, err := taskmanager.NewTaskManager(5*time.Second, snapshotChan, taskActionChan)
 	if err != nil {
 		return
 	}
 	viewActionChan := make(chan viewmodel.ViewAction, 10)
 	displayDataChan := make(chan viewmodel.DisplayData, 1)
-	vm := viewmodel.NewViewModel(taskmanager.Mode(defaultMode), snapshotChan, viewActionChan, displayDataChan)
+	vm := viewmodel.NewViewModel(snapshotChan, viewActionChan, displayDataChan)
 	go tm.Start()
 	go vm.Start()
 

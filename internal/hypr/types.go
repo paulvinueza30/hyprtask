@@ -4,7 +4,7 @@ type Workspace struct {
 	ID   int
 	Name string
 }
-type Client struct {
+type HyprlandMeta struct {
 	Workspace Workspace
 	Monitor   int
 	Title     string
