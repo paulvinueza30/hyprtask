@@ -23,6 +23,7 @@ func NewProcessList(procs []taskmanager.TaskProcess) *ProcessList {
 		{Title: "PID", Width: 8},
 		{Title: "Program", Width: 20},
 		{Title: "User", Width: 12},
+		{Title: "Command", Width: 30},
 		{Title: "CPU%", Width: 8},
 		{Title: "Mem%", Width: 8},
 	}
@@ -31,8 +32,9 @@ func NewProcessList(procs []taskmanager.TaskProcess) *ProcessList {
 	for i, proc := range procs {
 		rows[i] = table.Row{
 			fmt.Sprintf("%d", proc.PID),
-			fmt.Sprintf("program-%d", proc.PID),
-			"user",
+			proc.ProgramName,
+			proc.User,
+			proc.CommandLine,
 			fmt.Sprintf("%.1f", proc.Metrics.CPU),
 			fmt.Sprintf("%.1f", proc.Metrics.MEM),
 		}
@@ -121,8 +123,9 @@ func (p *ProcessList) updateTableWithProcesses(procs []taskmanager.TaskProcess) 
 	for i, proc := range procs {
 		rows[i] = table.Row{
 			fmt.Sprintf("%d", proc.PID),
-			fmt.Sprintf("program-%d", proc.PID),
-			"user",
+			proc.ProgramName,
+			proc.User,
+			proc.CommandLine,
 			fmt.Sprintf("%.1f", proc.Metrics.CPU),
 			fmt.Sprintf("%.1f", proc.Metrics.MEM),
 		}
