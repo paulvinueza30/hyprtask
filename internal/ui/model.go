@@ -63,6 +63,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.displayData = msg
 		cmds = append(cmds, m.listenToDisplayDataChan())
 		cmds = append(cmds, m.updateWorkspaceSelectorWithDisplayData()...)
+		cmds = append(cmds, m.updateProcessListWithDisplayData()...)
 
 	case messages.ChangeScreenMsg[messages.ProcessListMsg]:
 		processes := m.getProcsForWorkspace(msg.ScreenMsg.WorkspaceID)
@@ -149,6 +150,22 @@ func (m *Model) updateWorkspaceSelectorWithDisplayData() []tea.Cmd {
 	if screen, exists := m.screens[screens.WorkspaceSelector]; exists {
 		updatedScreen, cmd := screen.Update(workspaceMsg)
 		m.screens[screens.WorkspaceSelector] = updatedScreen
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+	}
+
+	return cmds
+}
+
+func (m *Model) updateProcessListWithDisplayData() []tea.Cmd {
+	var cmds []tea.Cmd
+
+	processMsg := messages.NewAllProcessesMsg()
+	processMsg.Processes = m.displayData.All
+	if screen, exists := m.screens[screens.ProcessList]; exists {
+		updatedScreen, cmd := screen.Update(processMsg)
+		m.screens[screens.ProcessList] = updatedScreen
 		if cmd != nil {
 			cmds = append(cmds, cmd)
 		}

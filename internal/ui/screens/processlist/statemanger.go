@@ -1,6 +1,7 @@
 package processlist
 
 import (
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/paulvinueza30/hyprtask/internal/taskmanager"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
@@ -15,15 +16,17 @@ type state struct {
 }
 type stateManager struct {
 	state *state
+	table *table.Model
 }
 
-func newStateManager(procs []taskmanager.TaskProcess) *stateManager {
+func newStateManager(procs []taskmanager.TaskProcess, table *table.Model) *stateManager {
 	return &stateManager{
 		state: &state{
 			workspaceID:   nil,
 			workspaceName: nil,
 			processList:   procs,
 		},
+		table: table,
 	}
 }
 

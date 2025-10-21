@@ -5,16 +5,17 @@ import (
 	"github.com/thiagokokada/hyprland-go"
 )
 
-type HyprlandClient struct{
+type HyprlandClient struct {
 	c *hyprland.RequestClient
 }
+
 func NewClient() *HyprlandClient {
 	c := hyprland.MustClient()
-	return &HyprlandClient{c : c}
-} 
+	return &HyprlandClient{c: c}
+}
 
 func (c *HyprlandClient) ListClients() []Client {
-	clients, err := c.c.Clients() 
+	clients, err := c.c.Clients()
 	if err != nil {
 		logger.Log.Error("could not get hyprland clients: " + err.Error())
 		return nil
