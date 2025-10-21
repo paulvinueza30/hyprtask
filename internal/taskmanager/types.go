@@ -8,13 +8,16 @@ import (
 )
 
 type Meta struct {
-	HyprlandMeta *hypr.HyprlandMeta
+	Hyprland *hypr.HyprlandMeta
 }
 
 type TaskProcess struct {
-	PID     int
-	Meta    *Meta
-	Metrics metrics.Metrics
+	PID         int
+	ProgramName string
+	User        string
+	CommandLine string
+	Meta        *Meta
+	Metrics     metrics.Metrics
 }
 
 type Snapshot struct {

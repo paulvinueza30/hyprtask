@@ -109,17 +109,17 @@ func (v *ViewModel) buildWorkspaceDisplayData(procs []taskmanager.TaskProcess) W
 	workspaceCount := 0
 	for _, proc := range procs {
 		// Only process procs that have Hyprland metadata
-		if proc.Meta == nil || proc.Meta.HyprlandMeta == nil {
+		if proc.Meta == nil || proc.Meta.Hyprland == nil {
 			continue
 		}
 		
-		wID := proc.Meta.HyprlandMeta.Workspace.ID
+		wID := proc.Meta.Hyprland.Workspace.ID
 		var wsData *WorkspaceData
 		wsData, ok := workspaceToWorkspaceData[wID]
 		if !ok {
 			workspaceToWorkspaceData[wID] = &WorkspaceData{}
 			wsData = workspaceToWorkspaceData[wID]
-			wsData.WorkspaceName = proc.Meta.HyprlandMeta.Workspace.Name
+			wsData.WorkspaceName = proc.Meta.Hyprland.Workspace.Name
 			wsData.WorkspaceID = wID
 		}
 		wsData.TotalCPU += proc.Metrics.CPU

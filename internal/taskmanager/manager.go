@@ -108,9 +108,12 @@ func (t *TaskManager) updateActiveProcesses(procs map[int]procprovider.Proc) {
 			t.mu.Lock()
 			defer t.mu.Unlock()
 			t.activeProcesses[pid] = TaskProcess{
-				PID:     pid,
-				Metrics: *m,
-				Meta:    &Meta{},
+				PID:         pid,
+				ProgramName: p.ProgramName,
+				User:        p.User,
+				CommandLine: p.CommandLine,
+				Metrics:     *m,
+				Meta:        &Meta{},
 			}
 		}(pid, p)
 	}
@@ -146,8 +149,9 @@ func (t *TaskManager) injectHyprlandMeta() {
 	}
 	for pid, meta := range hyprlandMeta {
 		if taskProcess, ok := t.activeProcesses[pid]; ok {
-			taskProcess.Meta.HyprlandMeta = &meta
-		}else {
+			taskProcess.Meta.Hyprland = &meta
+			t.activeProcesses[pid] = taskProcess
+		} else {
 			logger.Log.Warn("process not found in active processes", "pid", pid)
 		}
 	}
