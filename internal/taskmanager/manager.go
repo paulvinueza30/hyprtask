@@ -2,6 +2,7 @@ package taskmanager
 
 import (
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/paulvinueza30/hyprtask/internal/hypr"
@@ -37,14 +38,25 @@ func NewTaskManager(pollInterval time.Duration, snapshotChan chan Snapshot, task
 	}
 
 	activeProcesses := make(map[int]TaskProcess)
-	return &TaskManager{pollingInterval: pollInterval, systemMonitor: *systemMonitor, procProvider: procProvider, hyprlandClient: hyprlandClient, activeProcesses: activeProcesses, snapshotChan: snapshotChan, taskActionChan: taskActionChan}, nil
+	return &TaskManager{
+		pollingInterval: pollInterval, 
+		systemMonitor: *systemMonitor, 
+		procProvider: procProvider, 
+		hyprlandClient: hyprlandClient, 
+		activeProcesses: activeProcesses, 
+		snapshotChan: snapshotChan, 
+		taskActionChan: taskActionChan,
+	}, nil
 }
 
 func (t *TaskManager) Start() {
+	go t.handleTaskActions()
+	
 	ticker := time.NewTicker(t.pollingInterval)
 	defer ticker.Stop()
 	devTicker := time.NewTicker(30 * time.Second)
 	defer devTicker.Stop()
+	
 	for {
 		select {
 		case <-ticker.C:
@@ -160,5 +172,38 @@ func (t *TaskManager) injectHyprlandMeta() {
 		} else {
 			logger.Log.Warn("process not found in active processes", "pid", pid)
 		}
+	}
+}
+
+func (t *TaskManager) handleTaskActions() {
+	for action := range t.taskActionChan {
+		logger.Log.Info("Received task action", "action", action)
+		t.handleTaskAction(action)
+		t.sendSnapshot()
+	}
+}
+
+func (t *TaskManager) handleTaskAction(action TaskAction) {
+	switch action.Type {
+	case TaskActionKill:
+		t.handleKillProcess(action.Payload)
+	}
+}
+
+func (t *TaskManager) handleKillProcess(payload KillProcessPayload) {
+	signal := syscall.SIGTERM
+	if payload.Force {
+		signal = syscall.SIGKILL
+	}
+	
+	err := syscall.Kill(payload.PID, signal)
+	if err != nil {
+		logger.Log.Error("Failed to kill process", "pid", payload.PID, "signal", signal, "error", err)
+	} else {
+		logger.Log.Info("Successfully killed process", "pid", payload.PID, "signal", signal)
+		// Immediately remove from activeProcesses for instant UI feedback
+		t.mu.Lock()
+		delete(t.activeProcesses, payload.PID)
+		t.mu.Unlock()
 	}
 }

@@ -17,6 +17,7 @@ import (
 type Model struct {
 	displayDataChan <-chan viewmodel.DisplayData
 	viewActionChan  chan<- viewmodel.ViewAction
+	taskActionChan  chan<- taskmanager.TaskAction
 
 	displayData  viewmodel.DisplayData
 	windowWidth  int
@@ -26,21 +27,21 @@ type Model struct {
 	activeScreen screens.ScreenType
 }
 
-func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.ViewAction) *Model {
+func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.ViewAction, taskActChan chan taskmanager.TaskAction) *Model {
 	theme.Init()
 	keymap.Init()
 
 	model := &Model{
 		displayDataChan: ddChan,
 		viewActionChan:  viewActChan,
+		taskActionChan:  taskActChan,
+		// TODO: Make this dynamic based on if theres workspaces or not
+		activeScreen: screens.WorkspaceSelector,
 		screens: map[screens.ScreenType]tea.Model{
 			screens.WorkspaceSelector: workspaceselector.NewWorkspaceSelectorView(),
 			screens.ProcessList:       processlist.NewProcessList([]taskmanager.TaskProcess{}),
 		},
-		// TODO: Make this dynamic based on if theres workspaces or not
-		activeScreen: screens.WorkspaceSelector,
 	}
-
 	return model
 }
 
@@ -93,7 +94,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case messages.ChangeSortOptionMsg:
 		m.sendSortActionToViewModel(msg)
-
+	case messages.KillProcessMsg:
+		m.sendKillActionToTaskManager(msg)
 	}
 
 	if broadcastMsg != nil {
@@ -183,4 +185,14 @@ func (m *Model) sendSortActionToViewModel(msg messages.ChangeSortOptionMsg){
 		NewSortOrder: msg.Order,
 	}
 	logger.Log.Info("Sending sort action to viewmodel", "action", msg)
+}
+func (m *Model) sendKillActionToTaskManager(msg messages.KillProcessMsg){
+	m.taskActionChan <- taskmanager.TaskAction{
+		Type:    taskmanager.TaskActionKill,
+		Payload: taskmanager.KillProcessPayload{
+			PID: msg.PID,
+			Force: msg.Force,
+		},
+	}
+	logger.Log.Info("Sending kill action to taskmanager", "action", msg)
 }

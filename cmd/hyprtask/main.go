@@ -14,7 +14,7 @@ import (
 func main() {
 	logger.Init()
 
-	snapshotChan := make(chan taskmanager.Snapshot, 1)
+	snapshotChan := make(chan taskmanager.Snapshot, 3)
 	taskActionChan := make(chan taskmanager.TaskAction, 10)
 	tm, err := taskmanager.NewTaskManager(5*time.Second, snapshotChan, taskActionChan)
 	if err != nil {
@@ -26,7 +26,7 @@ func main() {
 	go tm.Start()
 	go vm.Start()
 
-	m := ui.NewModel(displayDataChan, viewActionChan)
+	m := ui.NewModel(displayDataChan, viewActionChan, taskActionChan)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		logger.Log.Error("could not start program", "error", err)

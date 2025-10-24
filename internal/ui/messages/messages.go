@@ -73,3 +73,15 @@ func NewChangeSortOptionMsg(key viewmodel.SortKey, order viewmodel.SortOrder) Ch
 		Order: order,
 	}
 }
+
+type KillProcessMsg struct {
+	PID   int
+	Force bool // true for SIGKILL, false for SIGTERM
+}
+
+func NewKillProcessMsg(pid int, force bool) KillProcessMsg {
+	return KillProcessMsg{
+		PID:   pid,
+		Force: force,
+	}
+}

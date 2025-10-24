@@ -58,6 +58,10 @@ func (sm *stateManager) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		return sm.sortKeyRight()
 	case "toggle_sort_order":
 		return sm.toggleSortOrder()
+	case "kill_process":
+		return sm.killProcess(false)
+	case "kill_process_force":
+		return sm.killProcess(true)
 	}
 
 	return nil
@@ -120,4 +124,15 @@ func (sm *stateManager) toggleSortOrder() tea.Cmd {
 	return func() tea.Msg {
 		return messages.NewChangeSortOptionMsg(sm.state.sortOptions.key, sm.state.sortOptions.order)
 	}
+}
+
+func (sm *stateManager) killProcess(force bool) tea.Cmd {
+	selectedRow := sm.table.Cursor()
+	if selectedRow < len(sm.state.processList) {
+		proc := sm.state.processList[selectedRow]
+		return func() tea.Msg {
+			return messages.NewKillProcessMsg(proc.PID, force)
+		}
+	}
+	return nil
 }

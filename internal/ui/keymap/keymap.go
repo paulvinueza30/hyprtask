@@ -23,6 +23,8 @@ type KeyMap struct {
 	SortKeyLeft                     key.Binding
 	SortKeyRight                    key.Binding
 	ToggleSortOrder                 key.Binding
+	KillProcess                     key.Binding
+	KillProcessForce                key.Binding
 }
 
 var keyMap KeyMap
@@ -50,6 +52,8 @@ func NewDefaultKeyMap() KeyMap {
 	km.setSortKeyLeftKeys("[", "<")
 	km.setSortKeyRightKeys("]", ">")
 	km.setToggleSortOrderKeys("ctrl+o")
+	km.setKillProcessKeys("k")
+	km.setKillProcessForceKeys("K")
 	return km
 }
 
@@ -75,8 +79,8 @@ func (km KeyMap) getWorkspaceSelectorHelpText() string {
 }
 
 func (km KeyMap) getProcessListHelpText() string {
-	return fmt.Sprintf("%s: change to workspace view, %s: sort key left, %s: sort key right, %s: toggle sort order",
-		km.ChangeToWorkspaceSelectorScreen.Help().Key, km.SortKeyLeft.Help().Key, km.SortKeyRight.Help().Key, km.ToggleSortOrder.Help().Key)
+	return fmt.Sprintf("%s: change to workspace view, %s: sort key left, %s: sort key right, %s: toggle sort order, %s: kill process, %s: kill process force",
+		km.ChangeToWorkspaceSelectorScreen.Help().Key, km.SortKeyLeft.Help().Key, km.SortKeyRight.Help().Key, km.ToggleSortOrder.Help().Key, km.KillProcess.Help().Key, km.KillProcessForce.Help().Key)
 }
 
 // HandleKeyMsg processes key messages for navigation
@@ -108,6 +112,10 @@ func (km KeyMap) HandleKeyMsg(msg tea.KeyMsg) (string, bool) {
 		return "sort_key_right", true
 	case key.Matches(msg, km.ToggleSortOrder):
 		return "toggle_sort_order", true
+	case key.Matches(msg, km.KillProcess):
+		return "kill_process", true
+	case key.Matches(msg, km.KillProcessForce):
+		return "kill_process_force", true
 	default:
 		return "", false
 	}
@@ -197,5 +205,17 @@ func (km *KeyMap) setToggleSortOrderKeys(keys ...string) {
 	km.ToggleSortOrder = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "toggle sort order"),
+	)
+}
+func (km *KeyMap) setKillProcessKeys(keys ...string) {
+	km.KillProcess = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "kill process (SIGTERM)"),
+	)
+}
+func (km *KeyMap) setKillProcessForceKeys(keys ...string) {
+	km.KillProcessForce = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "kill process force (SIGKILL)"),
 	)
 }

@@ -27,7 +27,16 @@ type Snapshot struct {
 
 type TaskAction struct {
 	Type    TaskActionType
-	Payload interface{}
+	Payload KillProcessPayload
 }
 
 type TaskActionType int
+
+const (
+	TaskActionKill TaskActionType = iota
+)
+
+type KillProcessPayload struct {
+	PID   int
+	Force bool // true for SIGKILL, false for SIGTERM
+}
