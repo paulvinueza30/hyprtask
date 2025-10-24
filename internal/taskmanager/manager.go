@@ -24,6 +24,9 @@ type TaskManager struct {
 	taskActionChan <-chan TaskAction
 }
 
+const (
+	DEBUG_MODE = false
+)
 
 func NewTaskManager(pollInterval time.Duration, snapshotChan chan Snapshot, taskActionChan chan TaskAction) (*TaskManager, error) {
 	procProvider := procprovider.NewProcProvider()
@@ -47,8 +50,9 @@ func (t *TaskManager) Start() {
 		case <-ticker.C:
 			go t.updateTaskProcesses()
 		case <-devTicker.C:
-			logger.Log.Info("stopping task manager")
-			return
+			if DEBUG_MODE {
+				return
+			}
 		}
 	}
 }

@@ -3,6 +3,7 @@ package metrics
 import (
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/paulvinueza30/hyprtask/internal/logger"
@@ -13,6 +14,7 @@ type SystemMonitor struct {
 	fs          procfs.FS
 	totalMemory uint64
 	pageSize    int
+	clockRate   int
 
 	tickDuration time.Duration
 }
@@ -29,9 +31,17 @@ func NewSystemMonitor(tickDuration time.Duration) (*SystemMonitor, error) {
 		logger.Log.Error("could not get fs memory info: " + err.Error())
 		return nil, err
 	}
+	// Get the system clock rate
+	clockRate := getSystemClockRate()
 	pageSize := os.Getpagesize()
 
-	return &SystemMonitor{fs: fs, totalMemory: *memInfo.MemTotal, pageSize: pageSize, tickDuration: tickDuration}, nil
+	return &SystemMonitor{
+		fs: fs, 
+		totalMemory: *memInfo.MemTotal, 
+		pageSize: pageSize, 
+		clockRate: clockRate,
+		tickDuration: tickDuration,
+	}, nil
 }
 
 func (m *SystemMonitor) GetMetrics(pid int) (*Metrics, error) {
@@ -94,6 +104,17 @@ func (m *SystemMonitor) getProcStats(pid int) (*ProcStats, error) {
 	return &ProcStats{cpuStats: cpuStats, memoryStats: memStats}, nil
 }
 
+func getSystemClockRate() int {
+	if data, err := os.ReadFile("/proc/sys/kernel/hz"); err == nil {
+		if rate, err := strconv.Atoi(string(data[:len(data)-1])); err == nil {
+			return rate
+		}
+	}
+	
+	// Fallback to 100 Hz (most common on modern systems)
+	return 100
+}
+
 func (m *SystemMonitor) calcCpuUsage(before, after CPUStats, totalTime float64) float64 {
 	if totalTime == 0 {
 		return 0.0
@@ -101,7 +122,11 @@ func (m *SystemMonitor) calcCpuUsage(before, after CPUStats, totalTime float64) 
 	userUtil := after.uTime - before.uTime
 	sysUtil := after.sTime - before.sTime
 	processDelta := userUtil + sysUtil
-	return float64(processDelta) / totalTime * 100.0
+	
+	// Convert jiffies to seconds 
+	processTimeSeconds := float64(processDelta) / float64(m.clockRate)
+	
+	return (processTimeSeconds / totalTime) * 100.0
 }
 
 func (m *SystemMonitor) calcMemoryUsage(memStats MemoryStats) float64 {
