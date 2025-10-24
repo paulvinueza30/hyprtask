@@ -25,6 +25,9 @@ type Model struct {
 
 	screens      map[screens.ScreenType]tea.Model
 	activeScreen screens.ScreenType
+	
+	// Track the current workspace context for ProcessList
+	processListWorkspaceID *int // nil = all processes, &workspaceID = specific workspace
 }
 
 func NewModel(ddChan chan viewmodel.DisplayData, viewActChan chan viewmodel.ViewAction, taskActChan chan taskmanager.TaskAction) *Model {
@@ -71,6 +74,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		processes := m.getProcsForWorkspace(msg.ScreenMsg.WorkspaceID)
 		msg.ScreenMsg.Processes = processes
 		m.SetActiveScreen(msg.ScreenType)
+		
+		// Store the workspace context
+		m.processListWorkspaceID = msg.ScreenMsg.WorkspaceID
+		
 		broadcastMsg = msg.ScreenMsg
 	case messages.ChangeScreenMsg[messages.WorkspaceListMsg]:
 		m.SetActiveScreen(msg.ScreenType)
@@ -167,8 +174,23 @@ func (m *Model) updateWorkspaceSelectorWithDisplayData() []tea.Cmd {
 func (m *Model) updateProcessListWithDisplayData() []tea.Cmd {
 	var cmds []tea.Cmd
 
-	processMsg := messages.NewAllProcessesMsg()
-	processMsg.Processes = m.displayData.All
+	// Respect the current workspace context
+	var processMsg messages.ProcessListMsg
+	
+	if m.processListWorkspaceID == nil {
+		// Currently viewing all processes
+		processMsg = messages.NewAllProcessesMsg()
+		processMsg.Processes = m.displayData.All
+	} else {
+		// Currently viewing a specific workspace
+		workspaceID := *m.processListWorkspaceID
+		processMsg = messages.ProcessListMsg{
+			WorkspaceID:   m.processListWorkspaceID,
+			WorkspaceName: m.getWorkspaceNameByID(workspaceID),
+			Processes:     m.getProcsForWorkspace(m.processListWorkspaceID),
+		}
+	}
+	
 	if screen, exists := m.screens[screens.ProcessList]; exists {
 		updatedScreen, cmd := screen.Update(processMsg)
 		m.screens[screens.ProcessList] = updatedScreen
@@ -195,4 +217,11 @@ func (m *Model) sendKillActionToTaskManager(msg messages.KillProcessMsg){
 		},
 	}
 	logger.Log.Info("Sending kill action to taskmanager", "action", msg)
+}
+
+func (m *Model) getWorkspaceNameByID(workspaceID int) *string {
+	if workspaceData, exists := m.displayData.Hypr.WorkspaceToProcs[workspaceID]; exists {
+		return &workspaceData.WorkspaceName
+	}
+	return nil
 }
