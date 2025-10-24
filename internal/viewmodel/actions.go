@@ -5,28 +5,15 @@ import "github.com/paulvinueza30/hyprtask/internal/logger"
 func (v *ViewModel) handleAction(a ViewAction) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	switch a.Type {
-	case ActionSetSortKey:
-		if key, ok := a.Payload.(SortKey); ok {
-			v.setSortKey(key)
-		}
-	case ActionSetSortOrder:
-		if key, ok := a.Payload.(SortOrder); ok {
-			v.setSortOrder(key)
-		}
-	}
-	v.buildDisplayData()
+	v.setSortKey(a.NewSortKey)
+	v.setSortOrder(a.NewSortOrder)
 }
 func (v *ViewModel) setSortKey(sk SortKey) {
 	if _, ok := validSortKeys[sk]; !ok {
 		logger.Log.Warn("invalid sort key entered", "sort key", sk)
 		return
 	}
-	v.viewOptions.SortBy = sk
-	if v.viewOptions.SortOrder == OrderNone {
-		// default is ASC
-		v.viewOptions.SortOrder = OrderASC
-	}
+	v.viewOptions.SortKey = sk
 }
 
 func (v *ViewModel) setSortOrder(so SortOrder) {

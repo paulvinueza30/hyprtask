@@ -3,6 +3,7 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/paulvinueza30/hyprtask/internal/logger"
 	"github.com/paulvinueza30/hyprtask/internal/taskmanager"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
 	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
@@ -90,6 +91,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, cmd)
 			}
 		}
+	case messages.ChangeSortOptionMsg:
+		m.sendSortActionToViewModel(msg)
+
 	}
 
 	if broadcastMsg != nil {
@@ -172,4 +176,11 @@ func (m *Model) updateProcessListWithDisplayData() []tea.Cmd {
 	}
 
 	return cmds
+}
+func (m *Model) sendSortActionToViewModel(msg messages.ChangeSortOptionMsg){
+	m.viewActionChan <- viewmodel.ViewAction{
+		NewSortKey: msg.Key,
+		NewSortOrder: msg.Order,
+	}
+	logger.Log.Info("Sending sort action to viewmodel", "action", msg)
 }

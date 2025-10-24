@@ -61,3 +61,15 @@ func NewAllProcessesMsg() ProcessListMsg {
 func NewWorkspaceProcessesMsg(workspaceID int, workspaceName string) ProcessListMsg {
 	return NewProcessListMsg(&workspaceID, &workspaceName)
 }
+
+type ChangeSortOptionMsg struct{
+	Key viewmodel.SortKey
+	Order viewmodel.SortOrder
+}
+
+func NewChangeSortOptionMsg(key viewmodel.SortKey, order viewmodel.SortOrder) ChangeSortOptionMsg {
+	return ChangeSortOptionMsg{
+		Key: key,
+		Order: order,
+	}
+}

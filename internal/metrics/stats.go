@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"time"
@@ -38,9 +37,8 @@ func NewSystemMonitor(tickDuration time.Duration) (*SystemMonitor, error) {
 func (m *SystemMonitor) GetMetrics(pid int) (*Metrics, error) {
 	beforeStats, err := m.getProcStats(pid)
 	if err != nil {
-		return nil , err
+		return &DEFAULT_METRICS, err
 	}
-	
 	beforeTime, err := m.getTotalTime()
 	if err != nil {
 		return nil , err
@@ -50,7 +48,7 @@ func (m *SystemMonitor) GetMetrics(pid int) (*Metrics, error) {
 	
 	afterStats, err := m.getProcStats(pid)
 	if err != nil {
-		return nil , err
+		return &DEFAULT_METRICS, err
 	}
 	afterTime, err := m.getTotalTime()
 	if err != nil {
@@ -62,7 +60,6 @@ func (m *SystemMonitor) GetMetrics(pid int) (*Metrics, error) {
 	memUsage := m.calcMemoryUsage(afterStats.memoryStats)
 	
 	metrics := &Metrics{CPU: cpuUsage, MEM: memUsage, } 
-	logger.Log.Info(fmt.Sprintf("usage stats for proc(%d) :", pid), "metrics " , metrics)
 	return metrics , nil
 }
 func (m *SystemMonitor) getTotalTime() (*float64, error) {
@@ -83,13 +80,11 @@ func (m *SystemMonitor) getTotalTime() (*float64, error) {
 func (m *SystemMonitor) getProcStats(pid int) (*ProcStats, error) {
 	proc, err := m.fs.Proc(pid)
 	if err != nil {
-		logger.Log.Error("could not get proc: " + err.Error())
 		return nil, err
 	}
 
 	stat, err := proc.Stat()
 	if err != nil {
-		logger.Log.Error("could not get proc stats: " + err.Error())
 		return nil, err
 	}
 

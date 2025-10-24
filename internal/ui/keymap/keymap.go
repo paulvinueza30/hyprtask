@@ -20,6 +20,9 @@ type KeyMap struct {
 	ChangeToAllProcsScreen          key.Binding
 	ChangeToWorkspaceSelectorScreen key.Binding
 	SelectWorkspace                 key.Binding
+	SortKeyLeft                     key.Binding
+	SortKeyRight                    key.Binding
+	ToggleSortOrder                 key.Binding
 }
 
 var keyMap KeyMap
@@ -44,6 +47,9 @@ func NewDefaultKeyMap() KeyMap {
 	km.setChangeToAllProcsScreenKeys("p", "ctrl+p")
 	km.setChangeToWorkspaceSelectorScreenKeys("w", "ctrl+w")
 	km.setSelectWorkspaceKeys("enter", "return")
+	km.setSortKeyLeftKeys("[", "<")
+	km.setSortKeyRightKeys("]", ">")
+	km.setToggleSortOrderKeys("ctrl+o")
 	return km
 }
 
@@ -69,7 +75,8 @@ func (km KeyMap) getWorkspaceSelectorHelpText() string {
 }
 
 func (km KeyMap) getProcessListHelpText() string {
-	return km.ChangeToAllProcsScreen.Help().Key + ": view all processes"
+	return fmt.Sprintf("%s: change to workspace view, %s: sort key left, %s: sort key right, %s: toggle sort order",
+		km.ChangeToWorkspaceSelectorScreen.Help().Key, km.SortKeyLeft.Help().Key, km.SortKeyRight.Help().Key, km.ToggleSortOrder.Help().Key)
 }
 
 // HandleKeyMsg processes key messages for navigation
@@ -95,6 +102,12 @@ func (km KeyMap) HandleKeyMsg(msg tea.KeyMsg) (string, bool) {
 		return "change_to_workspace_view", true
 	case key.Matches(msg, km.SelectWorkspace):
 		return "select_workspace", true
+	case key.Matches(msg, km.SortKeyLeft):
+		return "sort_key_left", true
+	case key.Matches(msg, km.SortKeyRight):
+		return "sort_key_right", true
+	case key.Matches(msg, km.ToggleSortOrder):
+		return "toggle_sort_order", true
 	default:
 		return "", false
 	}
@@ -166,5 +179,23 @@ func (km *KeyMap) setSelectWorkspaceKeys(keys ...string) {
 	km.SelectWorkspace = key.NewBinding(
 		key.WithKeys(keys...),
 		key.WithHelp(keys[0], "select workspace"),
+	)
+}
+func (km *KeyMap) setSortKeyLeftKeys(keys ...string) {
+	km.SortKeyLeft = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "sort key left"),
+	)
+}
+func (km *KeyMap) setSortKeyRightKeys(keys ...string) {
+	km.SortKeyRight = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "sort key right"),
+	)
+}
+func (km *KeyMap) setToggleSortOrderKeys(keys ...string) {
+	km.ToggleSortOrder = key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(keys[0], "toggle sort order"),
 	)
 }

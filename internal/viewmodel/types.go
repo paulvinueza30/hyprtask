@@ -1,23 +1,28 @@
 package viewmodel
 
-import "github.com/paulvinueza30/hyprtask/internal/taskmanager"
+import (
+	"github.com/paulvinueza30/hyprtask/internal/taskmanager"
+)
 
 type SortKey int
 
 const (
 	SortByNone SortKey = iota
+	SortByPID
+	SortByProgramName
+	SortByUser
 	SortByCPU
 	SortByMEM
-	SortByPID
-	// SortByName
 	// SortByWorkspace
 )
 
 var validSortKeys = map[SortKey]bool{
 	SortByNone: true,
+	SortByPID:  true,
+	SortByProgramName: true,
+	SortByUser: true,
 	SortByCPU:  true,
 	SortByMEM:  true,
-	SortByPID:  true,
 }
 
 type SortOrder int
@@ -34,23 +39,14 @@ var validSortOrders = map[SortOrder]bool{
 	OrderDESC: true,
 }
 
+type ViewAction struct {
+	NewSortKey SortKey
+	NewSortOrder SortOrder
+}
 type ViewOptions struct {
-	SortBy    SortKey
+	SortKey SortKey
 	SortOrder SortOrder
 }
-
-type ActionType int
-
-const (
-	ActionSetSortKey ActionType = iota
-	ActionSetSortOrder
-)
-
-type ViewAction struct {
-	Type    ActionType
-	Payload interface{}
-}
-
 type WorkspaceData struct {
 	ActiveProcs      []taskmanager.TaskProcess
 	ActiveProcsCount int

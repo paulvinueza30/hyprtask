@@ -9,6 +9,8 @@ import (
 	"github.com/paulvinueza30/hyprtask/internal/taskmanager"
 	"github.com/paulvinueza30/hyprtask/internal/ui/keymap"
 	"github.com/paulvinueza30/hyprtask/internal/ui/messages"
+	"github.com/paulvinueza30/hyprtask/internal/ui/screens"
+	"github.com/paulvinueza30/hyprtask/internal/viewmodel"
 )
 
 type ProcessList struct {
@@ -97,7 +99,16 @@ func (p *ProcessList) View() string {
 	tableView := p.table.View()
 	// TODO: Add scratchpad for full help text
 	tableHelp := "Table Help: " + p.table.HelpView()
-	instructions := "Press " + keymap.Get().ChangeToWorkspaceSelectorScreen.Help().Key + " to change to workspace view"
+	
+	// Debug: Show current sort options
+	sortKey := p.stateManager.state.sortOptions.key
+	sortOrder := p.stateManager.state.sortOptions.order
+	sortKeyStr := getSortKeyString(sortKey)
+	sortOrderStr := getSortOrderString(sortOrder)
+	debugInfo := fmt.Sprintf(" | Sort: %s %s", sortKeyStr, sortOrderStr)
+	tableHelp += debugInfo
+	
+	instructions := keymap.Get().GetHelpText(screens.ProcessList)
 
 	centeredHeader := lipgloss.PlaceHorizontal(p.width, lipgloss.Center, header)
 	centeredTable := lipgloss.PlaceHorizontal(p.width, lipgloss.Center, tableView)
@@ -148,4 +159,35 @@ func (p *ProcessList) handleWindowSize(msg tea.WindowSizeMsg) {
 	}
 	
 	p.table.SetHeight(tableHeight)
+}
+
+// Helper functions for debug display
+func getSortKeyString(key viewmodel.SortKey) string {
+	switch key {
+	case viewmodel.SortByNone:
+		return "None"
+	case viewmodel.SortByPID:
+		return "PID"
+	case viewmodel.SortByProgramName:
+		return "Program"
+	case viewmodel.SortByCPU:
+		return "CPU"
+	case viewmodel.SortByMEM:
+		return "MEM"
+	default:
+		return "Unknown"
+	}
+}
+
+func getSortOrderString(order viewmodel.SortOrder) string {
+	switch order {
+	case viewmodel.OrderNone:
+		return "None"
+	case viewmodel.OrderASC:
+		return "ASC"
+	case viewmodel.OrderDESC:
+		return "DESC"
+	default:
+		return "Unknown"
+	}
 }

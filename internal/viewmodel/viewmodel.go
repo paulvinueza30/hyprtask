@@ -14,8 +14,7 @@ type ViewModel struct {
 	actionChan      <-chan ViewAction
 	displayDataChan chan<- DisplayData
 
-	// viewLayout any // implement later need to think more
-	viewOptions *ViewOptions
+	viewOptions ViewOptions
 
 	currentSnapshot *taskmanager.Snapshot
 	displayData     DisplayData
@@ -24,12 +23,12 @@ type ViewModel struct {
 }
 
 func NewViewModel(ssChan chan taskmanager.Snapshot, acChan chan ViewAction, ddChan chan DisplayData) *ViewModel {
-	viewOptions := &ViewOptions{SortBy: SortByNone, SortOrder: OrderNone}
+	viewOptions := ViewOptions{SortKey: SortByNone, SortOrder: OrderNone}
 	return &ViewModel{
 		snapshotChan:    ssChan,
 		actionChan:      acChan,
 		displayDataChan: ddChan,
-		viewOptions:     viewOptions,
+		viewOptions: viewOptions,
 		currentSnapshot: nil,
 	}
 }
@@ -39,12 +38,25 @@ func (v *ViewModel) Start() {
 		select {
 		case snapshot := <-v.snapshotChan:
 			v.updateSnapshot(snapshot)
-			v.buildDisplayData()
+			v.processSnapshot()
 		case action := <-v.actionChan:
-			v.handleAction(action)
+			// Check if snapshot is waiting before processing action
+			// TODO: NIL POINTER PANIC HERE FOR EMPTY PROC SCREEN
+			select {
+			case snapshot := <-v.snapshotChan:
+				v.updateSnapshot(snapshot)
+				v.handleAction(action)
+				v.processSnapshot()
+			default:
+				// No snapshot waiting, process action
+				logger.Log.Info("Received action in viewmodel", "action", action)
+				v.handleAction(action)
+				v.rebuildDisplayData()
+			}
 		}
 	}
 }
+
 
 func (v *ViewModel) updateSnapshot(s taskmanager.Snapshot) {
 	v.mu.Lock()
@@ -52,18 +64,21 @@ func (v *ViewModel) updateSnapshot(s taskmanager.Snapshot) {
 	v.currentSnapshot = &s
 }
 
-func (v *ViewModel) buildDisplayData() {
+func (v *ViewModel) processSnapshot() {
 	v.mu.Lock()
 	defer v.mu.Unlock()
+	v.rebuildDisplayData()
+}
+
+func (v *ViewModel) rebuildDisplayData() {
 	procs := v.currentSnapshot.Processes
-	var wsDisplayData WorkspaceDisplayData
-	wsDisplayData = v.buildWorkspaceDisplayData(procs)
+	
+	wsDisplayData := v.buildWorkspaceDisplayData(procs)
 	v.applyViewOptions(procs)
 
 	v.displayData = DisplayData{All: procs, Hypr: wsDisplayData}
 
 	// Send DisplayData to UI
-	logger.Log.Info("About to send DisplayData", "displayData", v.displayData)
 	v.sendDisplayData()
 }
 
@@ -81,15 +96,19 @@ func (v *ViewModel) applyViewOptions(procs []taskmanager.TaskProcess) {
 		return
 	}
 	viewOpts := v.viewOptions
-	if viewOpts.SortBy == SortByNone {
+	if viewOpts.SortKey == SortByNone {
 		return
 	}
 
 	slices.SortStableFunc(procs, func(a, b taskmanager.TaskProcess) int {
 		var less int
-		switch viewOpts.SortBy {
+		switch viewOpts.SortKey{
 		case SortByCPU:
 			less = cmp.Compare(a.Metrics.CPU, b.Metrics.CPU)
+		case SortByProgramName:
+			less = cmp.Compare(a.ProgramName, b.ProgramName)
+		case SortByUser:
+			less = cmp.Compare(a.User, b.User)
 		case SortByMEM:
 			less = cmp.Compare(a.Metrics.MEM, b.Metrics.MEM)
 		case SortByPID:
@@ -103,7 +122,6 @@ func (v *ViewModel) applyViewOptions(procs []taskmanager.TaskProcess) {
 }
 
 func (v *ViewModel) buildWorkspaceDisplayData(procs []taskmanager.TaskProcess) WorkspaceDisplayData {
-
 	workspaceToWorkspaceData := make(map[int]*WorkspaceData)
 
 	workspaceCount := 0
@@ -132,7 +150,6 @@ func (v *ViewModel) buildWorkspaceDisplayData(procs []taskmanager.TaskProcess) W
 		wsData.ActiveProcsCount = len(wsData.ActiveProcs)
 		v.applyViewOptions(wsData.ActiveProcs)
 		workspaces = append(workspaces, wsData)
-
 	}
 	// Sort workspaces by name for consistent ordering
 	slices.SortStableFunc(workspaces, func(a, b *WorkspaceData) int {

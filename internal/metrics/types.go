@@ -18,3 +18,7 @@ type CPUStats struct {
 type MemoryStats struct {
 	rss int
 } 
+
+var (
+	DEFAULT_METRICS = Metrics{CPU: 0, MEM: 0}
+)

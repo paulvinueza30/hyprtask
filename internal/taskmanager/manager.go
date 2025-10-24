@@ -75,7 +75,7 @@ func (t *TaskManager) updateTaskProcesses() {
 func (t *TaskManager) deleteInactiveProcesses(procs map[int]procprovider.Proc) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	logger.Log.Info("active processes now: ", "active procs before", len(t.activeProcesses))
+	
 	// Take a snapshot of keys to avoid mutating map while iterating
 	snapshot := make([]int, 0, len(t.activeProcesses))
 	for pid := range t.activeProcesses {
@@ -90,7 +90,10 @@ func (t *TaskManager) deleteInactiveProcesses(procs map[int]procprovider.Proc) {
 		}
 	}
 
-	logger.Log.Info("proc details", "active procs", len(t.activeProcesses), "procs deleted", deletedCount)
+	// Only log if there are significant changes
+	if deletedCount > 0 {
+		logger.Log.Info("processes removed", "deleted", deletedCount, "remaining", len(t.activeProcesses))
+	}
 }
 
 func (t *TaskManager) updateActiveProcesses(procs map[int]procprovider.Proc) {
@@ -101,8 +104,7 @@ func (t *TaskManager) updateActiveProcesses(procs map[int]procprovider.Proc) {
 			defer wg.Done()
 			m, err := t.systemMonitor.GetMetrics(pid)
 			if err != nil {
-				logger.Log.Error("could not get system metrics", "error", err)
-				return
+				logger.Log.Warn("could not get system metrics giving default values", "error", err)
 			}
 
 			t.mu.Lock()
@@ -138,7 +140,7 @@ func (t *TaskManager) sendSnapshot() {
 	case t.snapshotChan <- snapshot:
 
 	default:
-		logger.Log.Warn("skipped snapshot send - channel full")
+		logger.Log.Warn("skipped snapshot send - viewmodel is not ready")
 	}
 }
 func (t *TaskManager) injectHyprlandMeta() {

@@ -20,7 +20,7 @@ func main() {
 	if err != nil {
 		return
 	}
-	viewActionChan := make(chan viewmodel.ViewAction, 10)
+	viewActionChan := make(chan viewmodel.ViewAction, 1)
 	displayDataChan := make(chan viewmodel.DisplayData, 1)
 	vm := viewmodel.NewViewModel(snapshotChan, viewActionChan, displayDataChan)
 	go tm.Start()
