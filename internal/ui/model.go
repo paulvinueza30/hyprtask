@@ -174,7 +174,7 @@ func (m *Model) updateWorkspaceSelectorWithDisplayData() []tea.Cmd {
 func (m *Model) updateProcessListWithDisplayData() []tea.Cmd {
 	var cmds []tea.Cmd
 
-	// Respect the current workspace context
+
 	var processMsg messages.ProcessListMsg
 	
 	if m.processListWorkspaceID == nil {
