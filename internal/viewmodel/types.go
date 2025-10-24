@@ -9,8 +9,8 @@ type SortKey int
 const (
 	SortByNone SortKey = iota
 	SortByPID
-	SortByProgramName
 	SortByUser
+	SortByProgramName
 	SortByCPU
 	SortByMEM
 	// SortByWorkspace
@@ -19,8 +19,8 @@ const (
 var validSortKeys = map[SortKey]bool{
 	SortByNone: true,
 	SortByPID:  true,
-	SortByProgramName: true,
 	SortByUser: true,
+	SortByProgramName: true,
 	SortByCPU:  true,
 	SortByMEM:  true,
 }
