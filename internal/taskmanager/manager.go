@@ -52,6 +52,9 @@ func NewTaskManager(pollInterval time.Duration, snapshotChan chan Snapshot, task
 func (t *TaskManager) Start() {
 	go t.handleTaskActions()
 	
+	// Trigger immediate update on startup to eliminate 5-second delay
+	go t.updateTaskProcesses()
+	
 	ticker := time.NewTicker(t.pollingInterval)
 	defer ticker.Stop()
 	devTicker := time.NewTicker(30 * time.Second)
@@ -83,9 +86,15 @@ func (t *TaskManager) updateTaskProcesses() {
 	}
 
 	t.deleteInactiveProcesses(procMap)
-	t.updateActiveProcesses(procMap)
+	
+	// Progressive loading: send quick snapshot first, then enrich
+	// Inject Hyprland metadata immediately (it's fast) so workspaces appear
+	t.updateActiveProcessesQuick(procMap)
 	t.injectHyprlandMeta()
 	t.sendSnapshot()
+	
+	// Enrich with accurate metrics in background (this requires 4-second sleep)
+	go t.enrichProcessesAccurate(procMap)
 }
 
 func (t *TaskManager) deleteInactiveProcesses(procs map[int]procprovider.Proc) {
@@ -112,28 +121,63 @@ func (t *TaskManager) deleteInactiveProcesses(procs map[int]procprovider.Proc) {
 	}
 }
 
-func (t *TaskManager) updateActiveProcesses(procs map[int]procprovider.Proc) {
+// updateActiveProcessesQuick uses quick metrics for immediate display
+func (t *TaskManager) updateActiveProcessesQuick(procs map[int]procprovider.Proc) {
 	var wg sync.WaitGroup
 	for pid, p := range procs {
 		wg.Add(1)
 		go func(pid int, proc procprovider.Proc) {
 			defer wg.Done()
-			m, err := t.systemMonitor.GetMetrics(pid)
+			m, err := t.systemMonitor.GetQuickMetrics(pid)
 			if err != nil {
-				logger.Log.Warn("could not get system metrics giving default values", "error", err)
+				logger.Log.Warn("could not get quick metrics giving default values", "error", err)
+				m = &metrics.DEFAULT_METRICS
 			}
 
 			t.mu.Lock()
 			defer t.mu.Unlock()
 			t.activeProcesses[pid] = TaskProcess{
 				PID:         pid,
-				ProgramName: p.ProgramName,
-				User:        p.User,
-				CommandLine: p.CommandLine,
+				ProgramName: proc.ProgramName,
+				User:        proc.User,
+				CommandLine: proc.CommandLine,
 				Metrics:     *m,
 				Meta:        &Meta{},
 			}
 		}(pid, p)
+	}
+	wg.Wait()
+}
+
+// enrichProcessesAccurate updates processes with accurate metrics in background
+func (t *TaskManager) enrichProcessesAccurate(procs map[int]procprovider.Proc) {
+	// Update with accurate metrics (requires 4-second sleep per process)
+	t.updateActiveProcessesAccurate(procs)
+	
+	// Send updated snapshot with accurate metrics
+	t.sendSnapshot()
+}
+
+// updateActiveProcessesAccurate uses accurate metrics with sleep delay
+func (t *TaskManager) updateActiveProcessesAccurate(procs map[int]procprovider.Proc) {
+	var wg sync.WaitGroup
+	for pid := range procs {
+		wg.Add(1)
+		go func(pid int) {
+			defer wg.Done()
+			m, err := t.systemMonitor.GetMetrics(pid)
+			if err != nil {
+				logger.Log.Warn("could not get system metrics giving default values", "error", err)
+				return
+			}
+
+			t.mu.Lock()
+			if taskProcess, ok := t.activeProcesses[pid]; ok {
+				taskProcess.Metrics = *m
+				t.activeProcesses[pid] = taskProcess
+			}
+			t.mu.Unlock()
+		}(pid)
 	}
 	wg.Wait()
 }
@@ -165,6 +209,10 @@ func (t *TaskManager) injectHyprlandMeta() {
 		logger.Log.Error("could not get hyprland meta: " + err.Error())
 		return
 	}
+	
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	
 	for pid, meta := range hyprlandMeta {
 		if taskProcess, ok := t.activeProcesses[pid]; ok {
 			taskProcess.Meta.Hyprland = &meta

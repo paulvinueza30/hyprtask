@@ -72,6 +72,21 @@ func (m *SystemMonitor) GetMetrics(pid int) (*Metrics, error) {
 	metrics := &Metrics{CPU: cpuUsage, MEM: memUsage, } 
 	return metrics , nil
 }
+
+// GetQuickMetrics returns metrics without the sleep delay for immediate display
+// CPU will be 0.0 as it requires time delta to calculate accurately
+// Memory usage is calculated immediately from current stats
+func (m *SystemMonitor) GetQuickMetrics(pid int) (*Metrics, error) {
+	stats, err := m.getProcStats(pid)
+	if err != nil {
+		return &DEFAULT_METRICS, err
+	}
+	
+	memUsage := m.calcMemoryUsage(stats.memoryStats)
+	
+	metrics := &Metrics{CPU: 0.0, MEM: memUsage}
+	return metrics, nil
+}
 func (m *SystemMonitor) getTotalTime() (*float64, error) {
 	stat, err := m.fs.Stat()
 	if err != nil {
