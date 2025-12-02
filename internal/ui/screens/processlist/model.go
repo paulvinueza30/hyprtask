@@ -209,6 +209,8 @@ func getSortKeyString(key viewmodel.SortKey) string {
 		return "PID"
 	case viewmodel.SortByProgramName:
 		return "Program"
+	case viewmodel.SortByUser:
+		return "User"
 	case viewmodel.SortByCPU:
 		return "CPU"
 	case viewmodel.SortByMEM:
