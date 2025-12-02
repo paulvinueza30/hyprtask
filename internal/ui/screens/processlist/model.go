@@ -121,12 +121,12 @@ func (p *ProcessList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (p *ProcessList) View() string {
 	wsName := p.stateManager.getWorkspaceName()
-	wsNameStr := "all"
+	wsNameStr := "all processes"
 	if wsName != nil {
-		wsNameStr = *wsName
+		wsNameStr = "workspace " + *wsName
 	}
 
-	title := fmt.Sprintf("Process List for workspace %s", wsNameStr)
+	title := fmt.Sprintf("Process List for %s", wsNameStr)
 	header := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("205")).
