@@ -88,9 +88,13 @@ func (t *TaskManager) updateTaskProcesses() {
 	t.deleteInactiveProcesses(procMap)
 	
 	// Progressive loading: send quick snapshot first, then enrich
-	// Inject Hyprland metadata immediately (it's fast) so workspaces appear
 	t.updateActiveProcessesQuick(procMap)
+	
+	// Inject Hyprland metadata immediately (it's fast) so workspaces appear
+	// This must happen after all processes are added to activeProcesses
 	t.injectHyprlandMeta()
+	
+	// Send snapshot with processes and Hyprland metadata
 	t.sendSnapshot()
 	
 	// Enrich with accurate metrics in background (this requires 4-second sleep)
@@ -213,14 +217,22 @@ func (t *TaskManager) injectHyprlandMeta() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	
+	metaCount := 0
 	for pid, meta := range hyprlandMeta {
 		if taskProcess, ok := t.activeProcesses[pid]; ok {
+			// Ensure Meta is initialized
+			if taskProcess.Meta == nil {
+				taskProcess.Meta = &Meta{}
+			}
 			taskProcess.Meta.Hyprland = &meta
 			t.activeProcesses[pid] = taskProcess
+			metaCount++
 		} else {
 			logger.Log.Warn("process not found in active processes", "pid", pid)
 		}
 	}
+	
+	logger.Log.Info("injected Hyprland metadata", "totalProcesses", len(t.activeProcesses), "hyprlandProcesses", len(hyprlandMeta), "matched", metaCount)
 }
 
 func (t *TaskManager) handleTaskActions() {
