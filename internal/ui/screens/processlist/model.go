@@ -3,6 +3,7 @@ package processlist
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -16,6 +17,7 @@ import (
 type ProcessList struct {
 	stateManager *stateManager
 	table        table.Model
+	confirmation  *ConfirmationScreen
 	width        int
 	height       int
 }
@@ -56,6 +58,7 @@ func NewProcessList(procs []taskmanager.TaskProcess) *ProcessList {
 	return &ProcessList{
 		stateManager: newStateManager(procs, &t),
 		table:        t,
+		confirmation: NewConfirmationScreen(),
 	}
 }
 
@@ -65,14 +68,47 @@ func (p *ProcessList) Init() tea.Cmd {
 
 func (p *ProcessList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch typedMsg := msg.(type) {
+	case ConfirmKillMsg:
+		return p, func() tea.Msg {
+			return messages.NewKillProcessMsg(typedMsg.PID, typedMsg.Force)
+		}
+	case CancelKillMsg:
+		return p, nil
+	}
+	
+	if p.confirmation.show {
+		updatedConfirmation, cmd := p.confirmation.Update(msg)
+		p.confirmation = updatedConfirmation.(*ConfirmationScreen)
+		if cmd != nil {
+			return p, cmd
+		}
+	}
+
+	switch typedMsg := msg.(type) {
 	case messages.ProcessListMsg:
 		p.stateManager.setState(typedMsg)
 		p.updateTableWithProcesses(p.stateManager.getProcs())
 		return p, nil
+	case ShowConfirmationMsg:
+		p.confirmation.SetSize(p.width, p.height)
+		updatedConfirmation, cmd := p.confirmation.Update(msg)
+		p.confirmation = updatedConfirmation.(*ConfirmationScreen)
+		return p, cmd
 	case tea.WindowSizeMsg:
 		p.handleWindowSize(typedMsg)
+		updatedConfirmation, _ := p.confirmation.Update(msg)
+		p.confirmation = updatedConfirmation.(*ConfirmationScreen)
 		return p, nil
 	case tea.KeyMsg:
+		km := keymap.Get()
+		if key.Matches(typedMsg, km.KillProcess) || key.Matches(typedMsg, km.KillProcessForce) {
+			cmd := p.stateManager.handleKeyMsg(typedMsg)
+			if cmd != nil {
+				return p, cmd
+			}
+			return p, nil
+		}
+		
 		updatedTable, cmd := p.table.Update(msg)
 		p.table = updatedTable
 		if cmd != nil {
@@ -97,10 +133,8 @@ func (p *ProcessList) View() string {
 		Render(title)
 
 	tableView := p.table.View()
-	// TODO: Add scratchpad for full help text
 	tableHelp := "Table Help: " + p.table.HelpView()
 	
-	// Debug: Show current sort options
 	sortKey := p.stateManager.state.sortOptions.key
 	sortOrder := p.stateManager.state.sortOptions.order
 	sortKeyStr := getSortKeyString(sortKey)
@@ -126,7 +160,13 @@ func (p *ProcessList) View() string {
 	helpStyled := lipgloss.NewStyle().MarginBottom(marginBottom).Render(centeredHelp)
 	instructionsStyled := lipgloss.NewStyle().Render(centeredInstructions)
 
-	return lipgloss.JoinVertical(lipgloss.Center, headerStyled, tableStyled, helpStyled, instructionsStyled)
+	processListView := lipgloss.JoinVertical(lipgloss.Center, headerStyled, tableStyled, helpStyled, instructionsStyled)
+
+	if p.confirmation.show {
+		return p.confirmation.View()
+	}
+
+	return processListView
 }
 
 func (p *ProcessList) updateTableWithProcesses(procs []taskmanager.TaskProcess) {
@@ -161,7 +201,6 @@ func (p *ProcessList) handleWindowSize(msg tea.WindowSizeMsg) {
 	p.table.SetHeight(tableHeight)
 }
 
-// Helper functions for debug display
 func getSortKeyString(key viewmodel.SortKey) string {
 	switch key {
 	case viewmodel.SortByNone:

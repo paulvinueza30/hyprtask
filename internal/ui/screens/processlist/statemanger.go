@@ -131,7 +131,12 @@ func (sm *stateManager) killProcess(force bool) tea.Cmd {
 	if selectedRow < len(sm.state.processList) {
 		proc := sm.state.processList[selectedRow]
 		return func() tea.Msg {
-			return messages.NewKillProcessMsg(proc.PID, force)
+			return ShowConfirmationMsg{
+				PID:         proc.PID,
+				ProcessName: proc.ProgramName,
+				Command:     proc.CommandLine,
+				Force:       force,
+			}
 		}
 	}
 	return nil

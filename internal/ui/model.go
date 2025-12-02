@@ -26,7 +26,6 @@ type Model struct {
 	screens      map[screens.ScreenType]tea.Model
 	activeScreen screens.ScreenType
 	
-	// Track the current workspace context for ProcessList
 	processListWorkspaceID *int // nil = all processes, &workspaceID = specific workspace
 }
 
@@ -103,6 +102,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.sendSortActionToViewModel(msg)
 	case messages.KillProcessMsg:
 		m.sendKillActionToTaskManager(msg)
+	default:
+	if activeScreen, exists := m.screens[m.activeScreen]; exists {
+			updatedScreen, cmd := activeScreen.Update(msg)
+			m.screens[m.activeScreen] = updatedScreen
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
 	}
 
 	if broadcastMsg != nil {

@@ -40,20 +40,20 @@ func Get() KeyMap {
 func NewDefaultKeyMap() KeyMap {
 	km := KeyMap{}
 	km.setQuitKeys("q", "ctrl+c")
-	km.setNavigateLeftKeys("left", "h")
-	km.setNavigateRightKeys("right", "l")
-	km.setNavigateUpKeys("up", "k")
-	km.setNavigateDownKeys("down", "j")
-	km.setScrollUpKeys("pgup", "u")
-	km.setScrollDownKeys("pgdown", "d")
+	km.setNavigateLeftKeys("left")
+	km.setNavigateRightKeys("right")
+	km.setNavigateUpKeys("up")
+	km.setNavigateDownKeys("down")
+	km.setScrollUpKeys("pgup")
+	km.setScrollDownKeys("pgdown")
 	km.setChangeToAllProcsScreenKeys("p", "ctrl+p")
 	km.setChangeToWorkspaceSelectorScreenKeys("w", "ctrl+w")
 	km.setSelectWorkspaceKeys("enter", "return")
 	km.setSortKeyLeftKeys("[", "<")
 	km.setSortKeyRightKeys("]", ">")
 	km.setToggleSortOrderKeys("ctrl+o")
-	km.setKillProcessKeys("k")
-	km.setKillProcessForceKeys("K")
+	km.setKillProcessKeys("x")
+	km.setKillProcessForceKeys("X")
 	return km
 }
 
