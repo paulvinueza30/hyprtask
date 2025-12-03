@@ -8,7 +8,7 @@
 
 ## 🎬 Demo
 
-https://github.com/paulvinueza30/hyprtask/raw/main/demo.mp4
+![HyprTask Demo](demo.gif)
 
 ## ✨ Features
 
