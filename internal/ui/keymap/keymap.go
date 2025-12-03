@@ -74,13 +74,13 @@ func (km KeyMap) getWorkspaceSelectorHelpText() string {
 		km.NavigateLeft.Help().Key, km.NavigateRight.Help().Key, km.NavigateUp.Help().Key, km.NavigateDown.Help().Key)
 	scrollKeys := fmt.Sprintf("%s/%s", km.ScrollUp.Help().Key, km.ScrollDown.Help().Key)
 
-	return fmt.Sprintf("%s: navigate, %s: scroll, %s: view all processes, %s: select workspace",
-		navigateKeys, scrollKeys, km.ChangeToAllProcsScreen.Help().Key, km.SelectWorkspace.Help().Key)
+	return fmt.Sprintf("%s: navigate, %s: scroll, %s: view all processes, %s: select workspace, %s: quit",
+		navigateKeys, scrollKeys, km.ChangeToAllProcsScreen.Help().Key, km.SelectWorkspace.Help().Key, km.Quit.Help().Key)
 }
 
 func (km KeyMap) getProcessListHelpText() string {
-	return fmt.Sprintf("%s: change to workspace view, %s: sort key left, %s: sort key right, %s: toggle sort order, %s: kill process, %s: kill process force",
-		km.ChangeToWorkspaceSelectorScreen.Help().Key, km.SortKeyLeft.Help().Key, km.SortKeyRight.Help().Key, km.ToggleSortOrder.Help().Key, km.KillProcess.Help().Key, km.KillProcessForce.Help().Key)
+	return fmt.Sprintf("%s: change to workspace view, %s: sort key left, %s: sort key right, %s: toggle sort order, %s: kill process, %s: kill process force, %s: quit",
+		km.ChangeToWorkspaceSelectorScreen.Help().Key, km.SortKeyLeft.Help().Key, km.SortKeyRight.Help().Key, km.ToggleSortOrder.Help().Key, km.KillProcess.Help().Key, km.KillProcessForce.Help().Key, km.Quit.Help().Key)
 }
 
 // HandleKeyMsg processes key messages for navigation
