@@ -1,68 +1,64 @@
 # HyprTask
 
-A terminal-based task manager for Hyprland window manager.
+> A lightweight, terminal-based task manager built specifically for the Hyprland window manager.
 
-## Requirements
+![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Go Version](https://img.shields.io/badge/go-1.21+-00ADD8.svg) ![Hyprland](https://img.shields.io/badge/Hyprland-Supported-green)
 
-### Minimum Terminal Dimensions
-- **Width**: 65 characters
-- **Height**: 20 lines
+**HyprTask** bridges the gap between your terminal and your window manager. Built with Go and the [Bubble Tea](https://github.com/charmbracelet/bubbletea) framework, it provides a responsive, keyboard-driven interface to monitor workspaces, manage processes, and optimize your workflow without leaving the command line.
 
-The application is designed to work optimally with these minimum dimensions. Smaller terminals may experience layout issues or limited functionality.
+## ✨ Features
 
-## Features
+* **⚡ Real-Time Monitoring**: Live updates of your active workspaces and running processes.
+* **🖥️ Responsive UI**: Dynamic padding and layout adjustments that respect your terminal dimensions.
+* **⌨️ Keyboard-Centric**: Fully navigable using intuitive keybindings—no mouse required.
+* **🔍 Workspace Selector**: Quickly filter and view processes specific to individual Hyprland workspaces.
+* **🎨 Beautiful TUI**: Styled with [Lipgloss](https://github.com/charmbracelet/lipgloss) for a modern, clean aesthetic.
 
-- Responsive workspace selector
-- Dynamic padding based on terminal size
-- Keyboard navigation and scrolling
-- Real-time workspace monitoring
+## 🚀 Getting Started
 
-## Usage
+### Prerequisites
 
-```bash
-./hyprtask
-```
+* **Go 1.25+**: Ensure you have Go installed.
+* **Hyprland**: This tool is designed to interact directly with the Hyprland compositor.
 
-## Controls
+### Installation
 
-Use your configured keybinds for navigation and selection.
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/paulvinueza30/hyprtask.git](https://github.com/paulvinueza30/hyprtask.git)
+    cd hyprtask
+    ```
 
-## Development
+2.  **Install dependencies:**
+    ```bash
+    go mod download
+    ```
 
-Built with Go using the Bubble Tea framework for terminal user interfaces.
+3.  **Build the binary:**
+    ```bash
+    go build -o hyprtask cmd/hyprtask/main.go
+    ```
 
-## Process List Design (TODO)
+4.  **Run:**
+    ```bash
+    ./hyprtask
+    ```
 
-### Simple Single Model Approach
+*> Note: The application is optimized for terminals with a minimum size of **65x20** characters.*
 
-**Messages:**
-```go
-type ViewWorkspaceProcsMsg struct {
-    WorkspaceID int
-}
+## 🤝 Contributing
 
-type ViewAllProcsMsg struct{}
-```
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-**ProcessList Model:**
-```go
-type ProcessList struct {
-    processes []Process
-    viewMode string // "all" | "workspace_1" | "workspace_2"
-}
-```
+### How to Contribute
 
-**Flow:**
-- WorkspaceSelector → ViewWorkspaceProcsMsg{WorkspaceID: 1} → ProcessList updates with filtered data
-- WorkspaceSelector → ViewAllProcsMsg{} → ProcessList updates with all data
+1.  **Fork the Project**
+2.  **Create your Feature Branch** (`git checkout -b feature/AmazingFeature`)
+3.  **Commit your Changes** (`git commit -m 'Add some AmazingFeature'`)
+4.  **Push to the Branch** (`git push origin feature/AmazingFeature`)
+5.  **Open a Pull Request**
 
-**Benefits:**
-- Simple, clean, easy to understand
-- Single model handles both "all processes" and "workspace-specific processes"
-- Easy to implement and debug
+## 🙏 Acknowledgments
 
-**Future Optimization (LRU Cache):**
-- Keep "all processes" always loaded
-- LRU cache for workspace-specific views
-- Fast switching between cached views
-- Only implement if performance becomes an issue
+* [Charm](https://charm.sh/) for the incredible Bubble Tea and Lipgloss libraries.
+* The Hyprland community for the window manager innovation.
