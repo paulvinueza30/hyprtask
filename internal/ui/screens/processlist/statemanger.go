@@ -126,9 +126,16 @@ func (sm *stateManager) toggleSortOrder() tea.Cmd {
 	}
 }
 
+func (sm *stateManager) updateTable(table *table.Model) {
+	sm.table = table
+}
+
 func (sm *stateManager) killProcess(force bool) tea.Cmd {
+	if sm.table == nil {
+		return nil
+	}
 	selectedRow := sm.table.Cursor()
-	if selectedRow < len(sm.state.processList) {
+	if selectedRow >= 0 && selectedRow < len(sm.state.processList) {
 		proc := sm.state.processList[selectedRow]
 		return func() tea.Msg {
 			return ShowConfirmationMsg{

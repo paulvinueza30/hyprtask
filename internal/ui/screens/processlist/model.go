@@ -3,7 +3,6 @@ package processlist
 import (
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -100,17 +99,10 @@ func (p *ProcessList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.confirmation = updatedConfirmation.(*ConfirmationScreen)
 		return p, nil
 	case tea.KeyMsg:
-		km := keymap.Get()
-		if key.Matches(typedMsg, km.KillProcess) || key.Matches(typedMsg, km.KillProcessForce) {
-			cmd := p.stateManager.handleKeyMsg(typedMsg)
-			if cmd != nil {
-				return p, cmd
-			}
-			return p, nil
-		}
-		
 		updatedTable, cmd := p.table.Update(msg)
 		p.table = updatedTable
+		// Update state manager's table pointer to keep it in sync
+		p.stateManager.updateTable(&p.table)
 		if cmd != nil {
 			return p, cmd
 		}
@@ -184,6 +176,8 @@ func (p *ProcessList) updateTableWithProcesses(procs []taskmanager.TaskProcess) 
 	
 	p.table.SetRows(rows)
 	p.table.Focus()
+	// Update state manager's table pointer to keep it in sync
+	p.stateManager.updateTable(&p.table)
 }
 
 func (p *ProcessList) handleWindowSize(msg tea.WindowSizeMsg) {
