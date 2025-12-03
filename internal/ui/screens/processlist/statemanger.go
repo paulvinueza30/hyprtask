@@ -74,7 +74,6 @@ func (sm *stateManager) changeToWorkspaceSelectorView() tea.Cmd {
 }
 
 func (sm *stateManager) setState(msg messages.ProcessListMsg) {
-	// Preserve the current sort options
 	currentSortOptions := sm.state.sortOptions
 	sm.state = &state{
 		workspaceID:   msg.WorkspaceID,
@@ -92,24 +91,69 @@ func (sm *stateManager) getWorkspaceID() *int {
 func (sm *stateManager) getWorkspaceName() *string {
 	return sm.state.workspaceName
 }
-func (sm *stateManager) sortKeyLeft() tea.Cmd {
-	if sm.state.sortOptions.key == viewmodel.SortByNone {
-		sm.state.sortOptions.key = viewmodel.SortByMEM
-	} else {
-	sm.state.sortOptions.key--
+
+var visualSortOrder = []viewmodel.SortKey{
+	viewmodel.SortByPID,
+	viewmodel.SortByProgramName,
+	viewmodel.SortByUser,
+	viewmodel.SortByCPU,
+	viewmodel.SortByMEM,
+}
+
+func (sm *stateManager) getCurrentVisualIndex() int {
+	currentKey := sm.state.sortOptions.key
+	if currentKey == viewmodel.SortByNone {
+		return -1
 	}
+	for i, key := range visualSortOrder {
+		if key == currentKey {
+			return i
+		}
+	}
+	return -1
+}
+
+func (sm *stateManager) sortKeyLeft() tea.Cmd {
+	currentIndex := sm.getCurrentVisualIndex()
+	if currentIndex == -1 {
+		sm.state.sortOptions.key = visualSortOrder[len(visualSortOrder)-1]
+	} else if currentIndex > 0 {
+		sm.state.sortOptions.key = visualSortOrder[currentIndex-1]
+	} else {
+		sm.state.sortOptions.key = viewmodel.SortByNone
+		sm.state.sortOptions.order = viewmodel.OrderNone
+		return func() tea.Msg {
+			return messages.NewChangeSortOptionMsg(sm.state.sortOptions.key, sm.state.sortOptions.order)
+		}
+	}
+	
+	if sm.state.sortOptions.order == viewmodel.OrderNone {
+		sm.state.sortOptions.order = viewmodel.OrderDESC
+	}
+	
 	return func() tea.Msg {
 		return messages.NewChangeSortOptionMsg(sm.state.sortOptions.key, sm.state.sortOptions.order)
 	}
 }
+
 func (sm *stateManager) sortKeyRight() tea.Cmd {
-	sm.state.sortOptions.key++
-	if sm.state.sortOptions.key > viewmodel.SortByMEM {
+	currentIndex := sm.getCurrentVisualIndex()
+	if currentIndex == -1 {
+		sm.state.sortOptions.key = visualSortOrder[0]
+	} else if currentIndex < len(visualSortOrder)-1 {
+		sm.state.sortOptions.key = visualSortOrder[currentIndex+1]
+	} else {
 		sm.state.sortOptions.key = viewmodel.SortByNone
+		sm.state.sortOptions.order = viewmodel.OrderNone
+		return func() tea.Msg {
+			return messages.NewChangeSortOptionMsg(sm.state.sortOptions.key, sm.state.sortOptions.order)
+		}
 	}
+	
 	if sm.state.sortOptions.order == viewmodel.OrderNone {
 		sm.state.sortOptions.order = viewmodel.OrderDESC
 	}
+	
 	return func() tea.Msg {
 		return messages.NewChangeSortOptionMsg(sm.state.sortOptions.key, sm.state.sortOptions.order)
 	}

@@ -107,6 +107,8 @@ func (v *ViewModel) applyViewOptions(procs []taskmanager.TaskProcess) {
 			less = cmp.Compare(a.Metrics.CPU, b.Metrics.CPU)
 		case SortByProgramName:
 			less = cmp.Compare(a.ProgramName, b.ProgramName)
+		case SortByUser:
+			less = cmp.Compare(a.User, b.User)
 		case SortByMEM:
 			less = cmp.Compare(a.Metrics.MEM, b.Metrics.MEM)
 		case SortByPID:

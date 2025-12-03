@@ -101,7 +101,6 @@ func (p *ProcessList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		updatedTable, cmd := p.table.Update(msg)
 		p.table = updatedTable
-		// Update state manager's table pointer to keep it in sync
 		p.stateManager.updateTable(&p.table)
 		if cmd != nil {
 			return p, cmd
@@ -124,15 +123,10 @@ func (p *ProcessList) View() string {
 		Foreground(lipgloss.Color("205")).
 		Render(title)
 
+	p.updateColumnHeaders()
+	
 	tableView := p.table.View()
 	tableHelp := "Table Help: " + p.table.HelpView()
-	
-	sortKey := p.stateManager.state.sortOptions.key
-	sortOrder := p.stateManager.state.sortOptions.order
-	sortKeyStr := getSortKeyString(sortKey)
-	sortOrderStr := getSortOrderString(sortOrder)
-	debugInfo := fmt.Sprintf(" | Sort: %s %s", sortKeyStr, sortOrderStr)
-	tableHelp += debugInfo
 	
 	instructions := keymap.Get().GetHelpText(screens.ProcessList)
 
@@ -175,8 +169,8 @@ func (p *ProcessList) updateTableWithProcesses(procs []taskmanager.TaskProcess) 
 	}
 	
 	p.table.SetRows(rows)
+	p.updateColumnHeaders()
 	p.table.Focus()
-	// Update state manager's table pointer to keep it in sync
 	p.stateManager.updateTable(&p.table)
 }
 
@@ -195,34 +189,57 @@ func (p *ProcessList) handleWindowSize(msg tea.WindowSizeMsg) {
 	p.table.SetHeight(tableHeight)
 }
 
-func getSortKeyString(key viewmodel.SortKey) string {
-	switch key {
-	case viewmodel.SortByNone:
-		return "None"
-	case viewmodel.SortByPID:
-		return "PID"
-	case viewmodel.SortByProgramName:
-		return "Program"
-	case viewmodel.SortByUser:
-		return "User"
-	case viewmodel.SortByCPU:
-		return "CPU"
-	case viewmodel.SortByMEM:
-		return "MEM"
+func (p *ProcessList) updateColumnHeaders() {
+	sortKey := p.stateManager.state.sortOptions.key
+	sortOrder := p.stateManager.state.sortOptions.order
+	
+	currentColumns := p.table.Columns()
+	baseTitles := []string{"PID", "Program", "User", "Command", "CPU%", "Mem%"}
+	
+	var arrow string
+	switch sortOrder {
+	case viewmodel.OrderASC:
+		arrow = " ↑"
+	case viewmodel.OrderDESC:
+		arrow = " ↓"
 	default:
-		return "Unknown"
+		arrow = ""
 	}
+	
+	columnIndex := p.getColumnIndexForSortKey(sortKey)
+	
+	newColumns := make([]table.Column, len(currentColumns))
+	for i := range currentColumns {
+		if i < len(baseTitles) {
+			title := baseTitles[i]
+			if sortKey != viewmodel.SortByNone && i == columnIndex {
+				title = baseTitles[i] + arrow
+			}
+			newColumns[i] = table.Column{
+				Title: title,
+				Width: currentColumns[i].Width,
+			}
+		} else {
+			newColumns[i] = currentColumns[i]
+		}
+	}
+	
+	p.table.SetColumns(newColumns)
 }
 
-func getSortOrderString(order viewmodel.SortOrder) string {
-	switch order {
-	case viewmodel.OrderNone:
-		return "None"
-	case viewmodel.OrderASC:
-		return "ASC"
-	case viewmodel.OrderDESC:
-		return "DESC"
+func (p *ProcessList) getColumnIndexForSortKey(sortKey viewmodel.SortKey) int {
+	switch sortKey {
+	case viewmodel.SortByPID:
+		return 0
+	case viewmodel.SortByProgramName:
+		return 1
+	case viewmodel.SortByUser:
+		return 2
+	case viewmodel.SortByCPU:
+		return 4
+	case viewmodel.SortByMEM:
+		return 5
 	default:
-		return "Unknown"
+		return -1
 	}
 }
