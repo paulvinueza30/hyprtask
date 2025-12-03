@@ -6,6 +6,10 @@
 
 **HyprTask** bridges the gap between your terminal and your window manager. Built with Go and the [Bubble Tea](https://github.com/charmbracelet/bubbletea) framework, it provides a responsive, keyboard-driven interface to monitor workspaces, manage processes, and optimize your workflow without leaving the command line.
 
+## 🎬 Demo
+
+<video src="demo.mp4" controls width="100%"></video>
+
 ## ✨ Features
 
 * **⚡ Real-Time Monitoring**: Live updates of your active workspaces and running processes.
