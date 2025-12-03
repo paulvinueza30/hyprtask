@@ -34,13 +34,34 @@
     go mod download
     ```
 
-3.  **Build the binary:**
+3.  **Install system-wide (recommended):**
+    
+    This will install `hyprtask` to `$GOPATH/bin` (usually `~/go/bin`), making it available from any directory:
     ```bash
-    go build -o hyprtask cmd/hyprtask/main.go
+    make install
+    ```
+    
+    **Note:** Ensure `$GOPATH/bin` is in your `$PATH`. You can verify this with:
+    ```bash
+    echo $PATH | grep -q "$(go env GOPATH)/bin" && echo "✓ GOPATH/bin is in PATH" || echo "✗ Add GOPATH/bin to PATH"
+    ```
+    
+    After installation, you can run `hyprtask` from anywhere:
+    ```bash
+    hyprtask
     ```
 
-4.  **Run:**
+4.  **Alternative: Build locally**
+    
+    If you prefer to build without installing system-wide:
     ```bash
+    make build
+    ./bin/hyprtask
+    ```
+    
+    Or manually:
+    ```bash
+    go build -o hyprtask cmd/hyprtask/main.go
     ./hyprtask
     ```
 
