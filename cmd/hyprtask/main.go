@@ -27,7 +27,8 @@ func main() {
 	go vm.Start()
 
 	m := ui.NewModel(displayDataChan, viewActionChan, taskActionChan)
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(m, tea.WithAltScreen())
+	
 	if _, err := p.Run(); err != nil {
 		logger.Log.Error("could not start program", "error", err)
 		os.Exit(1)
